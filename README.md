@@ -1,8 +1,8 @@
 # Epipolar Geometry Simulator
 
-An interactive 3D visualization tool for understanding epipolar geometry, the fundamental constraint that makes stereo vision and 3D reconstruction possible.
+While solidifying my basics on stereo camera geometry, I found it difficult to gain an intuition for the different kinds of epipolar patterns that come from perturbations of camera geometry from the ideal, and how the simple application of a homography matrix to the stereo images can correct for these perturbations to rectify a pair of stereo images. So, as a visual learner, I made this tool with claude code to gain a better intuition. 
 
-![Screenshot](https://via.placeholder.com/800x400?text=Epipolar+Geometry+Simulator)
+This is an interactive 3D visualization tool for understanding epipolar geometry, the fundamental constraint that makes stereo vision and 3D reconstruction possible.
 
 ## 🎯 Features
 
@@ -14,28 +14,16 @@ An interactive 3D visualization tool for understanding epipolar geometry, the fu
   - Vertical Offset
   - Roll/Pitch errors
   - Cameras facing each other
-- **Manual Rectification**: Apply homography transformations to understand the rectification process
+- **Manual Rectification**: Apply homography transformations to understand the rectification process. Watch the values of the homography matrix change as you apply different transforms. 
 - **Visual Epipolar Planes**: See the 3D planes connecting camera centers and scene points
 
-## 🚀 Live Demo
-
-[Try the Simulator](https://yourusername.github.io/epipolar-geometry-simulator/)
-
-## 📖 Learn More
-
-The [Info Page](info.html) includes:
-- Theory of epipolar geometry
-- Explanation of stereo rectification
-- The fundamental and essential matrices
-- Further reading recommendations
-
-## 🛠️ Technologies
+## Technologies
 
 - [Three.js](https://threejs.org/) - 3D graphics library
 - WebGL - Hardware-accelerated rendering
 - HTML5 Canvas - 2D overlays for epipolar lines
 
-## 👏 Credits
+## Credits
 
 - **Dhruva Gowda Storz** - Project Creator
 - **Claude Opus 4.5 (Anthropic)** - AI Programming Assistant
@@ -48,28 +36,5 @@ This work uses "[Thai Mask](https://sketchfab.com/3d-models/thai-mask-79da9d12d8
 ## 📄 License
 
 This project is open source. The 3D model has its own CC-BY-4.0 license (see `thai_mask/license.txt`).
-
-## 🖥️ Local Development
-
-Simply open `index.html` in a modern web browser. For the best experience, use a local server:
-
-```bash
-# Using Python
-python -m http.server 8000
-
-# Using Node.js
-npx serve
-
-# Using PHP
-php -S localhost:8000
-```
-
-Then navigate to `http://localhost:8000`
-
-## 📱 Browser Support
-
-- Chrome/Edge (recommended)
-- Firefox
-- Safari
 
 **Note**: This application requires WebGL support and is optimized for desktop browsers with mouse controls.
