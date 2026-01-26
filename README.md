@@ -4,7 +4,7 @@ While solidifying my basics on stereo camera geometry, I found it difficult to g
 
 This is an interactive 3D visualization tool for understanding epipolar geometry, the fundamental constraint that makes stereo vision and 3D reconstruction possible.
 
-## 🎯 Features
+## Features
 
 - **Interactive 3D Scene**: Orbit around the scene to see how two cameras view a 3D object
 - **Real-time Epipolar Lines**: Watch how epipolar lines change as cameras move
