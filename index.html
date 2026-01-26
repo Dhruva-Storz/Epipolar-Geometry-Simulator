@@ -1,0 +1,2760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epipolar Line Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #1F1F1D;
+            min-height: 100vh;
+            color: #E8E4DE;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        header {
+            text-align: center;
+            padding: 12px 0;
+        }
+        h1 {
+            color: #D4A84B;
+            font-size: 1.6em;
+            margin-bottom: 4px;
+        }
+        .subtitle {
+            color: #9A9689;
+            font-size: 0.9em;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 290px;
+            gap: 15px;
+            margin-top: 12px;
+        }
+        .view-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .panel {
+            background: #2A2A28;
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid #3D3D3A;
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .panel h2 {
+            color: #D4A84B;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        .god-view-container {
+            position: relative;
+            background: #1A1A18;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #godViewCanvas {
+            display: block;
+            width: 100%;
+            height: 510px;
+        }
+        .stereo-views {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .camera-view {
+            background: #1A1A18;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .camera-view h3 {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 4px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .camera-view.left h3 {
+            background: rgba(90, 138, 138, 0.25);
+            color: #5A8A8A;
+            border: 1px solid #5A8A8A;
+        }
+        .camera-view.right h3 {
+            background: rgba(198, 120, 100, 0.25);
+            color: #C67864;
+            border: 1px solid #C67864;
+        }
+        .view-wrapper {
+            position: relative;
+            padding-bottom: 66.67%; /* 3:2 aspect ratio */
+            height: 0;
+        }
+        .view-wrapper canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: calc(100vh - 90px);
+            overflow-y: auto;
+        }
+        .controls-panel::-webkit-scrollbar {
+            width: 5px;
+        }
+        .controls-panel::-webkit-scrollbar-track {
+            background: #2A2A28;
+        }
+        .controls-panel::-webkit-scrollbar-thumb {
+            background: #4A4A46;
+            border-radius: 3px;
+        }
+        .control-section {
+            background: #2A2A28;
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #3D3D3A;
+        }
+        .control-section h3 {
+            font-size: 0.8em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .control-section.left-cam h3 { color: #5A8A8A; }
+        .control-section.right-cam h3 { color: #C67864; }
+        .control-section.scene h3 { color: #D4A84B; }
+        .control-group {
+            margin-bottom: 6px;
+        }
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: #9A9689;
+            margin-bottom: 2px;
+        }
+        .control-value {
+            color: #E8E4DE;
+            font-family: 'Consolas', monospace;
+            min-width: 35px;
+            text-align: right;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 3px;
+            border-radius: 2px;
+            background: #3D3D3A;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #5A8A8A;
+            cursor: pointer;
+            border: 2px solid #2A2A28;
+        }
+        .right-cam input[type="range"]::-webkit-slider-thumb {
+            background: #C67864;
+        }
+        .scene input[type="range"]::-webkit-slider-thumb {
+            background: #D4A84B;
+        }
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+        .preset-btn {
+            padding: 7px 8px;
+            border: 1px solid #3D3D3A;
+            background: #353532;
+            color: #E8E4DE;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.7em;
+            transition: all 0.2s;
+        }
+        .preset-btn:hover {
+            background: #454542;
+            border-color: #D4A84B;
+        }
+        .preset-btn.active {
+            background: #4A4535;
+            border-color: #D4A84B;
+            color: #D4A84B;
+        }
+        .scene-info-overlay {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            padding: 10px 14px;
+            pointer-events: none;
+            backdrop-filter: blur(2px);
+        }
+        .scene-info-overlay h4 {
+            color: #D4A84B;
+            margin-bottom: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .scene-info-overlay p {
+            color: rgba(232, 228, 222, 0.85);
+            font-size: 0.75em;
+            line-height: 1.4;
+            margin: 0;
+        }
+        .reset-btn {
+            width: 100%;
+            padding: 8px;
+            background: #454542;
+            border: none;
+            color: #E8E4DE;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s;
+            margin-top: 6px;
+        }
+        .reset-btn:hover {
+            background: #555552;
+        }
+        .toggle-group {
+            display: flex;
+            gap: 5px;
+            margin-top: 6px;
+        }
+        .toggle-btn {
+            flex: 1;
+            padding: 5px 3px;
+            border: 1px solid #3D3D3A;
+            background: #353532;
+            color: #9A9689;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.68em;
+            transition: all 0.2s;
+        }
+        .toggle-btn.active {
+            background: #4A4535;
+            border-color: #D4A84B;
+            color: #D4A84B;
+        }
+        .axis-indicator {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            font-size: 0.68em;
+            color: #6D6D68;
+            pointer-events: none;
+        }
+        .camera-icon {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        /* Rectification Mode Button */
+        .rectify-btn {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #D4A84B 0%, #A8863C 100%);
+            border: none;
+            color: #1F1F1D;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .rectify-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(212, 168, 75, 0.4);
+        }
+        .rectify-btn.prominent {
+            width: 100%;
+            padding: 14px 24px;
+            font-size: 1.05em;
+            margin-top: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(212, 168, 75, 0.3);
+        }
+        
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .modal-overlay.active {
+            display: block;
+        }
+        
+        .modal-content {
+            max-width: 1500px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .modal-header h2 {
+            color: #D4A84B;
+            font-size: 1.4em;
+        }
+        .modal-close {
+            background: #454542;
+            border: none;
+            color: #E8E4DE;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.2s;
+        }
+        .modal-close:hover {
+            background: #C67864;
+        }
+        
+        /* Four Panel Layout */
+        .rectify-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 15px;
+        }
+        
+        .views-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .rectify-view {
+            background: #2A2A28;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .rectify-view h4 {
+            position: absolute;
+            top: 6px;
+            left: 8px;
+            font-size: 0.75em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .rectify-view.original h4 {
+            background: rgba(154, 150, 137, 0.3);
+            color: #9A9689;
+        }
+        .rectify-view.left h4 {
+            background: rgba(90, 138, 138, 0.25);
+            color: #5A8A8A;
+            border: 1px solid #5A8A8A;
+        }
+        .rectify-view.right h4 {
+            background: rgba(198, 120, 100, 0.25);
+            color: #C67864;
+            border: 1px solid #C67864;
+        }
+        .rectify-view .view-wrapper {
+            padding-bottom: 66.67%; /* 3:2 aspect ratio */
+            height: 0;
+        }
+        
+        /* Homography Controls Panel */
+        .homography-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+        
+        .matrix-section {
+            background: #2A2A28;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #3D3D3A;
+        }
+        .matrix-section h3 {
+            font-size: 0.85em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .matrix-section.left-matrix h3 { color: #5A8A8A; }
+        .matrix-section.right-matrix h3 { color: #C67864; }
+        
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .matrix-cell {
+            background: #353532;
+            border-radius: 4px;
+            padding: 6px 4px;
+            text-align: center;
+            font-family: 'Consolas', monospace;
+            font-size: 0.72em;
+            transition: all 0.3s;
+        }
+        .cell-linear { background: rgba(255, 107, 107, 0.15); border: 1px solid #ff6b6b; color: #ff6b6b; }
+        .cell-translation { background: rgba(78, 205, 196, 0.15); border: 1px solid #4ecdc4; color: #4ecdc4; }
+        .cell-perspective { background: rgba(255, 230, 109, 0.15); border: 1px solid #ffe66d; color: #ffe66d; }
+        .cell-scale { background: rgba(129, 199, 132, 0.15); border: 1px solid #81c784; color: #81c784; }
+        
+        .matrix-legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            font-size: 0.65em;
+            margin-bottom: 10px;
+            padding: 6px;
+            background: #1A1A18;
+            border-radius: 4px;
+        }
+        .matrix-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .matrix-legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+        
+        .h-control-group {
+            margin-bottom: 8px;
+        }
+        .h-control-group:last-child {
+            margin-bottom: 0;
+        }
+        .h-control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7em;
+            color: #9A9689;
+            margin-bottom: 2px;
+        }
+        .h-control-value {
+            font-family: 'Consolas', monospace;
+            color: #D4A84B;
+        }
+        .h-control-group input[type="range"] {
+            width: 100%;
+            height: 3px;
+        }
+        
+        .h-tab-buttons {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        .h-tab-btn {
+            flex: 1;
+            padding: 5px 6px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.68em;
+            transition: all 0.2s;
+        }
+        .h-tab-btn.linear { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
+        .h-tab-btn.translation { background: rgba(78, 205, 196, 0.2); color: #4ecdc4; border: 1px solid #4ecdc4; }
+        .h-tab-btn.perspective { background: rgba(255, 230, 109, 0.2); color: #ffe66d; border: 1px solid #ffe66d; }
+        .h-tab-btn.active { box-shadow: 0 0 10px currentColor; }
+        
+        .h-reset-btn {
+            width: 100%;
+            padding: 6px;
+            background: #454542;
+            border: none;
+            color: #E8E4DE;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.72em;
+            margin-top: 8px;
+        }
+        .h-reset-btn:hover {
+            background: #555552;
+        }
+        
+        .rectify-info {
+            background: linear-gradient(90deg, #2A2520 0%, #1E1E1C 100%);
+            border-radius: 8px;
+            padding: 10px;
+            border-left: 3px solid #D4A84B;
+            font-size: 0.72em;
+            line-height: 1.4;
+        }
+        .rectify-info h4 {
+            color: #D4A84B;
+            margin-bottom: 5px;
+            font-size: 0.95em;
+        }
+        
+        /* Mobile overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1F1F1D;
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+        }
+        .mobile-message {
+            max-width: 400px;
+        }
+        .mobile-message h2 {
+            color: #D4A84B;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+        .mobile-message p {
+            color: #9A9689;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .mobile-message .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        .mobile-message a {
+            color: #D4A84B;
+            text-decoration: none;
+        }
+        .mobile-message a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive: hide mobile overlay on desktop, show on mobile */
+        @media (max-width: 900px) {
+            .mobile-overlay {
+                display: flex;
+            }
+            .container {
+                display: none;
+            }
+        }
+        
+        /* Info link in header */
+        .info-link {
+            display: inline-block;
+            margin-left: 10px;
+            color: #9A9689;
+            text-decoration: none;
+            padding: 4px 12px;
+            border: 1px solid #3D3D3A;
+            border-radius: 4px;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        .info-link:hover {
+            border-color: #D4A84B;
+            color: #D4A84B;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile device overlay -->
+    <div class="mobile-overlay">
+        <div class="mobile-message">
+            <div class="icon">🖥️</div>
+            <h2>Desktop Required</h2>
+            <p>This interactive 3D epipolar geometry simulator requires a larger screen with mouse controls for the best experience.</p>
+            <p>Please visit on a desktop or laptop computer.</p>
+            <p style="margin-top: 30px;"><a href="info.html">📖 Read about epipolar geometry →</a></p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="main-layout">
+            <div class="view-section">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>3D Scene View</h2>
+                        <span style="font-size: 0.7em; color: #607d8b;">Drag to orbit • Scroll to zoom</span>
+                    </div>
+                    <div class="god-view-container">
+                        <canvas id="godViewCanvas"></canvas>
+                        <div class="scene-info-overlay">
+                            <h4 id="configTitle">Ideal Stereo Configuration</h4>
+                            <p id="configDescription">Both cameras are parallel with only horizontal separation. Epipolar lines are perfectly horizontal and corresponding lines are at the same vertical position in both images.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stereo-views">
+                    <div class="panel" style="padding: 0; overflow: hidden; border-radius: 8px;">
+                        <div class="camera-view left">
+                            <h3>Left Camera</h3>
+                            <div class="view-wrapper">
+                                <canvas id="leftView3D"></canvas>
+                                <canvas id="leftViewOverlay"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel" style="padding: 0; overflow: hidden; border-radius: 8px;">
+                        <div class="camera-view right">
+                            <h3>Right Camera</h3>
+                            <div class="view-wrapper">
+                                <canvas id="rightView3D"></canvas>
+                                <canvas id="rightViewOverlay"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="rectify-btn prominent" id="openRectifyBtn">
+                    🔧 Open Rectification Mode
+                </button>
+            </div>
+
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>📷 Presets</h3>
+                    <div class="preset-buttons">
+                        <button class="preset-btn active" data-preset="ideal">Ideal Stereo</button>
+                        <button class="preset-btn" data-preset="toein">Toe-In</button>
+                        <button class="preset-btn" data-preset="vertical">Vertical Offset</button>
+                        <button class="preset-btn" data-preset="roll">Roll Error</button>
+                        <button class="preset-btn" data-preset="pitch">Pitch Error</button>
+                        <button class="preset-btn" data-preset="facing">Facing Each Other</button>
+                    </div>
+                    <button class="reset-btn" id="resetBtn">↺ Reset to Ideal</button>
+                </div>
+
+                <div class="control-section left-cam">
+                    <h3><span class="camera-icon" style="background: #4fc3f7;"></span> Left Camera</h3>
+                    
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Position X</span>
+                            <span class="control-value" id="leftPosXVal">-70</span>
+                        </div>
+                        <input type="range" id="leftPosX" min="-300" max="300" value="-70" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Position Y</span>
+                            <span class="control-value" id="leftPosYVal">0</span>
+                        </div>
+                        <input type="range" id="leftPosY" min="-100" max="100" value="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Position Z</span>
+                            <span class="control-value" id="leftPosZVal">0</span>
+                        </div>
+                        <input type="range" id="leftPosZ" min="-200" max="200" value="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Yaw (°)</span>
+                            <span class="control-value" id="leftYawVal">0</span>
+                        </div>
+                        <input type="range" id="leftYaw" min="-90" max="90" value="0" step="0.5">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Pitch (°)</span>
+                            <span class="control-value" id="leftPitchVal">0</span>
+                        </div>
+                        <input type="range" id="leftPitch" min="-45" max="45" value="0" step="0.5">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Roll (°)</span>
+                            <span class="control-value" id="leftRollVal">0</span>
+                        </div>
+                        <input type="range" id="leftRoll" min="-30" max="30" value="0" step="0.5">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Focal Length (mm)</span>
+                            <span class="control-value" id="leftFovVal">35</span>
+                        </div>
+                        <input type="range" id="leftFov" min="10" max="200" value="35" step="1">
+                    </div>
+                </div>
+
+                <div class="control-section right-cam">
+                    <h3><span class="camera-icon" style="background: #ff6b6b;"></span> Right Camera</h3>
+                    
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Position X</span>
+                            <span class="control-value" id="rightPosXVal">70</span>
+                        </div>
+                        <input type="range" id="rightPosX" min="-300" max="300" value="70" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Position Y</span>
+                            <span class="control-value" id="rightPosYVal">0</span>
+                        </div>
+                        <input type="range" id="rightPosY" min="-100" max="100" value="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Position Z</span>
+                            <span class="control-value" id="rightPosZVal">0</span>
+                        </div>
+                        <input type="range" id="rightPosZ" min="-200" max="200" value="0" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Yaw (°)</span>
+                            <span class="control-value" id="rightYawVal">0</span>
+                        </div>
+                        <input type="range" id="rightYaw" min="-90" max="90" value="0" step="0.5">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Pitch (°)</span>
+                            <span class="control-value" id="rightPitchVal">0</span>
+                        </div>
+                        <input type="range" id="rightPitch" min="-45" max="45" value="0" step="0.5">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Roll (°)</span>
+                            <span class="control-value" id="rightRollVal">0</span>
+                        </div>
+                        <input type="range" id="rightRoll" min="-30" max="30" value="0" step="0.5">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Focal Length (mm)</span>
+                            <span class="control-value" id="rightFovVal">35</span>
+                        </div>
+                        <input type="range" id="rightFov" min="10" max="200" value="35" step="1">
+                    </div>
+                </div>
+
+                <div class="control-section scene">
+                    <h3><span class="camera-icon" style="background: #81c784;"></span> Display</h3>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" id="toggleFrustums">Frustums</button>
+                        <button class="toggle-btn active" id="toggleBaseline">Baseline</button>
+                        <button class="toggle-btn active" id="togglePlanes">Planes</button>
+                    </div>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" id="toggleLines">Lines</button>
+                    </div>
+                    <a href="info.html" class="info-link" style="display: block; text-align: center; margin-top: 10px;">ℹ️ About & Theory</a>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rectification Modal -->
+    <div class="modal-overlay" id="rectifyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔧 Manual Stereo Rectification</h2>
+                <button class="modal-close" id="closeRectifyBtn">✕</button>
+            </div>
+            
+            <div class="rectify-layout">
+                <div class="views-grid">
+                    <div class="rectify-view original left">
+                        <h4>Original Left</h4>
+                        <div class="view-wrapper">
+                            <canvas id="rectLeftOrigOverlay"></canvas>
+                        </div>
+                    </div>
+                    <div class="rectify-view original right">
+                        <h4>Original Right</h4>
+                        <div class="view-wrapper">
+                            <canvas id="rectRightOrigOverlay"></canvas>
+                        </div>
+                    </div>
+                    <div class="rectify-view left">
+                        <h4>Rectified Left (H₁ applied)</h4>
+                        <div class="view-wrapper">
+                            <canvas id="rectLeftTransOverlay"></canvas>
+                        </div>
+                    </div>
+                    <div class="rectify-view right">
+                        <h4>Rectified Right (H₂ applied)</h4>
+                        <div class="view-wrapper">
+                            <canvas id="rectRightTransOverlay"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="homography-panel">
+                    <div class="rectify-info">
+                        <h4>📐 How Rectification Works</h4>
+                        <p>Apply homography matrices H₁ and H₂ to warp both images so epipolar lines become horizontal and aligned. Perfect rectification makes corresponding points lie on the same row.</p>
+                    </div>
+                    
+                    <div class="matrix-legend">
+                        <div class="matrix-legend-item"><div class="matrix-legend-dot" style="background: #ff6b6b;"></div>Linear (rotate, scale, shear)</div>
+                        <div class="matrix-legend-item"><div class="matrix-legend-dot" style="background: #4ecdc4;"></div>Translation</div>
+                        <div class="matrix-legend-item"><div class="matrix-legend-dot" style="background: #ffe66d;"></div>Perspective</div>
+                        <div class="matrix-legend-item"><div class="matrix-legend-dot" style="background: #81c784;"></div>Global scale</div>
+                    </div>
+                    
+                    <!-- Left Homography H1 -->
+                    <div class="matrix-section left-matrix">
+                        <h3><span class="camera-icon" style="background: #4fc3f7;"></span> Left Homography H₁</h3>
+                        <div class="matrix-grid">
+                            <div class="matrix-cell cell-linear" id="h1_00">1.00</div>
+                            <div class="matrix-cell cell-linear" id="h1_01">0.00</div>
+                            <div class="matrix-cell cell-translation" id="h1_02">0</div>
+                            <div class="matrix-cell cell-linear" id="h1_10">0.00</div>
+                            <div class="matrix-cell cell-linear" id="h1_11">1.00</div>
+                            <div class="matrix-cell cell-translation" id="h1_12">0</div>
+                            <div class="matrix-cell cell-perspective" id="h1_20">0.0000</div>
+                            <div class="matrix-cell cell-perspective" id="h1_21">0.0000</div>
+                            <div class="matrix-cell cell-scale" id="h1_22">1.00</div>
+                        </div>
+                        
+                        <div class="h-tab-buttons">
+                            <button class="h-tab-btn linear active" onclick="setHTab('left', 'linear')">Linear</button>
+                            <button class="h-tab-btn translation" onclick="setHTab('left', 'translation')">Translate</button>
+                            <button class="h-tab-btn perspective" onclick="setHTab('left', 'perspective')">Persp</button>
+                        </div>
+                        
+                        <div id="h1-linear-controls">
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Rotation θ</span><span class="h-control-value" id="h1RotVal">0°</span></div>
+                                <input type="range" id="h1Rot" min="-30" max="30" value="0" step="0.5">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Scale X</span><span class="h-control-value" id="h1ScaleXVal">1.00</span></div>
+                                <input type="range" id="h1ScaleX" min="0.7" max="1.3" value="1" step="0.01">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Scale Y</span><span class="h-control-value" id="h1ScaleYVal">1.00</span></div>
+                                <input type="range" id="h1ScaleY" min="0.7" max="1.3" value="1" step="0.01">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Shear X</span><span class="h-control-value" id="h1ShearXVal">0.00</span></div>
+                                <input type="range" id="h1ShearX" min="-0.3" max="0.3" value="0" step="0.01">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Shear Y</span><span class="h-control-value" id="h1ShearYVal">0.00</span></div>
+                                <input type="range" id="h1ShearY" min="-0.3" max="0.3" value="0" step="0.01">
+                            </div>
+                        </div>
+                        <div id="h1-translation-controls" style="display: none;">
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Translate X</span><span class="h-control-value" id="h1TxVal">0</span></div>
+                                <input type="range" id="h1Tx" min="-100" max="100" value="0" step="1">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Translate Y</span><span class="h-control-value" id="h1TyVal">0</span></div>
+                                <input type="range" id="h1Ty" min="-100" max="100" value="0" step="1">
+                            </div>
+                        </div>
+                        <div id="h1-perspective-controls" style="display: none;">
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Perspective X (h₃₁)</span><span class="h-control-value" id="h1PxVal">0.0000</span></div>
+                                <input type="range" id="h1Px" min="-0.005" max="0.005" value="0" step="0.0001">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Perspective Y (h₃₂)</span><span class="h-control-value" id="h1PyVal">0.0000</span></div>
+                                <input type="range" id="h1Py" min="-0.005" max="0.005" value="0" step="0.0001">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Global Scale (h₃₃)</span><span class="h-control-value" id="h1H33Val">1.00</span></div>
+                                <input type="range" id="h1H33" min="0.5" max="2.0" value="1" step="0.01">
+                            </div>
+                        </div>
+                        <button class="h-reset-btn" onclick="resetHomography('left')">Reset H₁</button>
+                    </div>
+                    
+                    <!-- Right Homography H2 -->
+                    <div class="matrix-section right-matrix">
+                        <h3><span class="camera-icon" style="background: #ff6b6b;"></span> Right Homography H₂</h3>
+                        <div class="matrix-grid">
+                            <div class="matrix-cell cell-linear" id="h2_00">1.00</div>
+                            <div class="matrix-cell cell-linear" id="h2_01">0.00</div>
+                            <div class="matrix-cell cell-translation" id="h2_02">0</div>
+                            <div class="matrix-cell cell-linear" id="h2_10">0.00</div>
+                            <div class="matrix-cell cell-linear" id="h2_11">1.00</div>
+                            <div class="matrix-cell cell-translation" id="h2_12">0</div>
+                            <div class="matrix-cell cell-perspective" id="h2_20">0.0000</div>
+                            <div class="matrix-cell cell-perspective" id="h2_21">0.0000</div>
+                            <div class="matrix-cell cell-scale" id="h2_22">1.00</div>
+                        </div>
+                        
+                        <div class="h-tab-buttons">
+                            <button class="h-tab-btn linear active" onclick="setHTab('right', 'linear')">Linear</button>
+                            <button class="h-tab-btn translation" onclick="setHTab('right', 'translation')">Translate</button>
+                            <button class="h-tab-btn perspective" onclick="setHTab('right', 'perspective')">Persp</button>
+                        </div>
+                        
+                        <div id="h2-linear-controls">
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Rotation θ</span><span class="h-control-value" id="h2RotVal">0°</span></div>
+                                <input type="range" id="h2Rot" min="-30" max="30" value="0" step="0.5">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Scale X</span><span class="h-control-value" id="h2ScaleXVal">1.00</span></div>
+                                <input type="range" id="h2ScaleX" min="0.7" max="1.3" value="1" step="0.01">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Scale Y</span><span class="h-control-value" id="h2ScaleYVal">1.00</span></div>
+                                <input type="range" id="h2ScaleY" min="0.7" max="1.3" value="1" step="0.01">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Shear X</span><span class="h-control-value" id="h2ShearXVal">0.00</span></div>
+                                <input type="range" id="h2ShearX" min="-0.3" max="0.3" value="0" step="0.01">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Shear Y</span><span class="h-control-value" id="h2ShearYVal">0.00</span></div>
+                                <input type="range" id="h2ShearY" min="-0.3" max="0.3" value="0" step="0.01">
+                            </div>
+                        </div>
+                        <div id="h2-translation-controls" style="display: none;">
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Translate X</span><span class="h-control-value" id="h2TxVal">0</span></div>
+                                <input type="range" id="h2Tx" min="-100" max="100" value="0" step="1">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Translate Y</span><span class="h-control-value" id="h2TyVal">0</span></div>
+                                <input type="range" id="h2Ty" min="-100" max="100" value="0" step="1">
+                            </div>
+                        </div>
+                        <div id="h2-perspective-controls" style="display: none;">
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Perspective X (h₃₁)</span><span class="h-control-value" id="h2PxVal">0.0000</span></div>
+                                <input type="range" id="h2Px" min="-0.005" max="0.005" value="0" step="0.0001">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Perspective Y (h₃₂)</span><span class="h-control-value" id="h2PyVal">0.0000</span></div>
+                                <input type="range" id="h2Py" min="-0.005" max="0.005" value="0" step="0.0001">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Global Scale (h₃₃)</span><span class="h-control-value" id="h2H33Val">1.00</span></div>
+                                <input type="range" id="h2H33" min="0.5" max="2.0" value="1" step="0.01">
+                            </div>
+                        </div>
+                        <button class="h-reset-btn" onclick="resetHomography('right')">Reset H₂</button>
+                    </div>
+                    
+                    <button class="h-reset-btn" onclick="resetHomography('both')" style="background: #4a3f5f;">Reset Both Homographies</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+
+        // ============================================
+        // CONFIGURATION & CONSTANTS
+        // ============================================
+        // Warm heritage palette with good differentiation: amber, teal, coral, sage, dusty rose, ochre, slate
+        const POINT_COLORS = [0xD4A84B, 0x5A8A8A, 0xC67864, 0x8B9A6B, 0xB08B8B, 0xC4956A, 0x7A8A8A];
+        const POINT_COLORS_HEX = ['#D4A84B', '#5A8A8A', '#C67864', '#8B9A6B', '#B08B8B', '#C4956A', '#7A8A8A'];
+        
+        const PRESETS = {
+            ideal: {
+                name: 'Ideal Stereo Configuration',
+                description: 'Both cameras are parallel with only horizontal separation. Epipolar lines are perfectly horizontal and corresponding lines are at the same vertical position in both images.',
+                left: { x: -70, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, fov: 35 },
+                right: { x: 70, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, fov: 35 }
+            },
+            toein: {
+                name: 'Toe-In Configuration',
+                description: 'Cameras are angled inward (converging). Epipolar lines converge toward the opposite side. Common in vintage stereo cameras.',
+                left: { x: -70, y: 0, z: 0, yaw: -8, pitch: 0, roll: 0, fov: 35 },
+                right: { x: 70, y: 0, z: 0, yaw: 8, pitch: 0, roll: 0, fov: 35 }
+            },
+            vertical: {
+                name: 'Vertical Offset',
+                description: 'Right camera is positioned higher than left. Epipolar lines become tilted rather than horizontal. This is a common misalignment error.',
+                left: { x: -70, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, fov: 35 },
+                right: { x: 70, y: 30, z: 0, yaw: 0, pitch: 0, roll: 0, fov: 35 }
+            },
+            roll: {
+                name: 'Roll Misalignment',
+                description: 'Right camera is rotated around its optical axis. Epipolar lines rotate in opposite directions in each view. Even small roll errors are visually disturbing.',
+                left: { x: -70, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, fov: 35 },
+                right: { x: 70, y: 0, z: 0, yaw: 0, pitch: 0, roll: 8, fov: 35 }
+            },
+            pitch: {
+                name: 'Pitch Misalignment',
+                description: 'Right camera is tilted upward. Combined with horizontal baseline, this creates complex diagonal epipolar patterns.',
+                left: { x: -70, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, fov: 35 },
+                right: { x: 70, y: 0, z: 0, yaw: 0, pitch: 10, roll: 0, fov: 35 }
+            },
+            facing: {
+                name: 'Cameras Facing Each Other',
+                description: 'Extreme case where cameras point toward each other. The epipole appears at image center. All epipolar lines radiate outward from the epipole.',
+                left: { x: -200, y: 0, z: -250, yaw: -60, pitch: 0, roll: 0, fov: 35 },
+                right: { x: 200, y: 0, z: -250, yaw: 60, pitch: 0, roll: 0, fov: 35 }
+            }
+        };
+
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
+        let godScene, godCamera, godRenderer, godControls;
+        let leftCamera, rightCamera;
+        let leftRenderer, rightRenderer;
+        let sharedScene;
+        
+        let scenePoints = [];
+        let leftFrustumHelper, rightFrustumHelper;
+        let baselineLine, leftCamMesh, rightCamMesh;
+        let epipolarPlanes = [];
+        
+        // 3D Model related
+        let loadedModel = null;
+        
+        // Points on the Thai mask model surface (facial landmarks)
+        // Model is centered at approximately (0, 0, -300), scaled to ~200 units
+        // Coordinates obtained via Shift+Click coordinate picker
+        const MODEL_POINT_POSITIONS = [
+            { x: 61.2, y: 75.5, z: -327.2 },   // Right forehead/horn
+            { x: 26.8, y: 22.8, z: -287.5 },   // Right eye area
+            { x: -0.8, y: 17.0, z: -265.4 },   // Nose bridge
+            { x: -28.0, y: -26.4, z: -285.6 }, // Left cheek
+            { x: 1.5, y: -71.2, z: -294.6 },   // Chin
+            { x: -66.7, y: 36.1, z: -328.9 },  // Left forehead/horn
+            { x: 62.4, y: -21.8, z: -329.2 }   // Right cheek/side
+        ];
+        
+        let showFrustums = true;
+        let showBaseline = true;
+        let showEpipolarPlanes = true;
+        let showEpipolarLines = true;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        function init() {
+            createSharedScene();
+            setupGodView();
+            setupCameraViews();
+            setupControls();
+            animate();
+            onResize();
+            window.addEventListener('resize', onResize);
+        }
+
+        function createSharedScene() {
+            sharedScene = new THREE.Scene();
+            
+            // Black background for contrast with white backdrop
+            sharedScene.background = new THREE.Color(0x000000);
+            
+            // Initialize RectAreaLight support
+            RectAreaLightUniformsLib.init();
+            
+            // Higher ambient for softer overall look
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            sharedScene.add(ambientLight);
+            
+            // Professional digitization lighting with large area lights (softboxes):
+            
+            // Left softbox - large rectangular area light
+            const leftSoftbox = new THREE.RectAreaLight(0xffffff, 3, 200, 200);
+            leftSoftbox.position.set(-300, 100, -100);
+            leftSoftbox.lookAt(0, 0, -300);
+            sharedScene.add(leftSoftbox);
+            
+            // Right softbox - large rectangular area light
+            const rightSoftbox = new THREE.RectAreaLight(0xffffff, 3, 200, 200);
+            rightSoftbox.position.set(300, 100, -100);
+            rightSoftbox.lookAt(0, 0, -300);
+            sharedScene.add(rightSoftbox);
+            
+            // Top softbox - large rectangular area light
+            const topSoftbox = new THREE.RectAreaLight(0xffffff, 2.5, 250, 250);
+            topSoftbox.position.set(0, 350, -200);
+            topSoftbox.lookAt(0, 0, -300);
+            sharedScene.add(topSoftbox);
+            
+            // Single shadow-casting light for subtle shadow (from above-front)
+            // Using lower intensity since RectAreaLights provide main illumination
+            const shadowLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            shadowLight.position.set(0, 300, 100);
+            shadowLight.target.position.set(0, 0, -300);
+            shadowLight.castShadow = true;
+            shadowLight.shadow.mapSize.width = 4096;
+            shadowLight.shadow.mapSize.height = 4096;
+            shadowLight.shadow.camera.near = 50;
+            shadowLight.shadow.camera.far = 1000;
+            shadowLight.shadow.camera.left = -400;
+            shadowLight.shadow.camera.right = 400;
+            shadowLight.shadow.camera.top = 400;
+            shadowLight.shadow.camera.bottom = -400;
+            shadowLight.shadow.bias = -0.0001;
+            shadowLight.shadow.radius = 16;  // Maximum blur for PCFSoft
+            shadowLight.shadow.blurSamples = 25;  // More samples for smoother blur
+            sharedScene.add(shadowLight);
+            sharedScene.add(shadowLight.target);
+            
+            // Add visible softbox geometry
+            createSoftboxGeometry(-300, 100, -100, 0, 0, -300, 200, 200, 40);  // Left
+            createSoftboxGeometry(300, 100, -100, 0, 0, -300, 200, 200, 40);   // Right
+            createSoftboxGeometry(0, 350, -200, 0, 0, -300, 250, 250, 50);     // Top
+            
+            // Create museum photography backdrop (cyclorama/infinity cove)
+            createMuseumBackdrop();
+            
+            // Create point markers
+            createPointMarkers();
+            
+            // Load the 3D model
+            loadModel();
+            
+            // Set up coordinate picker for Shift+Click on model
+            setupCoordinatePicker();
+        }
+        
+        function createSoftboxGeometry(x, y, z, targetX, targetY, targetZ, width, height, depth) {
+            // Create a simple softbox - pyramid/wedge shape with white rectangular front
+            const group = new THREE.Group();
+            
+            // Dark housing material
+            const housingMat = new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                roughness: 0.9,
+                metalness: 0.1,
+                side: THREE.DoubleSide
+            });
+            
+            // Bright white diffuser (front face)
+            const diffuserMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide
+            });
+            
+            const hw = width / 2;
+            const hh = height / 2;
+            
+            // Front rectangle (white diffuser)
+            const frontGeo = new THREE.PlaneGeometry(width, height);
+            const front = new THREE.Mesh(frontGeo, diffuserMat);
+            front.position.z = depth / 2;
+            group.add(front);
+            
+            // Back point (apex of pyramid) - small rectangle or point
+            const backSize = 15;
+            const backGeo = new THREE.PlaneGeometry(backSize, backSize);
+            const back = new THREE.Mesh(backGeo, housingMat);
+            back.position.z = -depth / 2;
+            group.add(back);
+            
+            // Four tapered side panels (triangles connecting front rect to back point)
+            // Top panel
+            const topShape = new THREE.BufferGeometry();
+            topShape.setAttribute('position', new THREE.Float32BufferAttribute([
+                -hw, hh, depth/2,      // front top-left
+                hw, hh, depth/2,       // front top-right
+                backSize/2, backSize/2, -depth/2,   // back top-right
+                -backSize/2, backSize/2, -depth/2,  // back top-left
+            ], 3));
+            topShape.setIndex([0, 1, 2, 0, 2, 3]);
+            topShape.computeVertexNormals();
+            const top = new THREE.Mesh(topShape, housingMat);
+            group.add(top);
+            
+            // Bottom panel
+            const bottomShape = new THREE.BufferGeometry();
+            bottomShape.setAttribute('position', new THREE.Float32BufferAttribute([
+                -hw, -hh, depth/2,
+                hw, -hh, depth/2,
+                backSize/2, -backSize/2, -depth/2,
+                -backSize/2, -backSize/2, -depth/2,
+            ], 3));
+            bottomShape.setIndex([0, 3, 2, 0, 2, 1]);
+            bottomShape.computeVertexNormals();
+            const bottom = new THREE.Mesh(bottomShape, housingMat);
+            group.add(bottom);
+            
+            // Left panel
+            const leftShape = new THREE.BufferGeometry();
+            leftShape.setAttribute('position', new THREE.Float32BufferAttribute([
+                -hw, -hh, depth/2,
+                -hw, hh, depth/2,
+                -backSize/2, backSize/2, -depth/2,
+                -backSize/2, -backSize/2, -depth/2,
+            ], 3));
+            leftShape.setIndex([0, 1, 2, 0, 2, 3]);
+            leftShape.computeVertexNormals();
+            const left = new THREE.Mesh(leftShape, housingMat);
+            group.add(left);
+            
+            // Right panel
+            const rightShape = new THREE.BufferGeometry();
+            rightShape.setAttribute('position', new THREE.Float32BufferAttribute([
+                hw, -hh, depth/2,
+                hw, hh, depth/2,
+                backSize/2, backSize/2, -depth/2,
+                backSize/2, -backSize/2, -depth/2,
+            ], 3));
+            rightShape.setIndex([0, 3, 2, 0, 2, 1]);
+            rightShape.computeVertexNormals();
+            const right = new THREE.Mesh(rightShape, housingMat);
+            group.add(right);
+            
+            // Position the group
+            group.position.set(x, y, z);
+            
+            // Make it look at the target
+            group.lookAt(targetX, targetY, targetZ);
+            
+            sharedScene.add(group);
+            return group;
+        }
+        
+        let museumBackdrop;
+        
+        function createMuseumBackdrop() {
+            // Create a curved backdrop like museum photography setups (cyclorama/infinity cove)
+            // Flat floor that curves up into a vertical back wall - extends "infinitely"
+            
+            const width = 1000;       // Width of the backdrop
+            const floorDepth = 600;   // How far the flat floor extends forward
+            const curveRadius = 400;  // Large radius for very gradual curve
+            const wallHeight = 600;   // Height of the vertical back wall
+            const segments = 64;      // More segments for smoother curve
+            
+            // Create custom geometry
+            const positions = [];
+            const normals = [];
+            const uvs = [];
+            const indices = [];
+            
+            const halfWidth = width / 2;
+            
+            // We'll build the surface in rows from front to back to top
+            // Row structure: floor -> curve -> wall
+            
+            const rows = [];
+            
+            // Floor section (flat, y = -120, z from front to curve start)
+            const floorY = -130;
+            const curveStartZ = -150;  // Where the curve begins (closer to the mask)
+            const floorStartZ = curveStartZ + floorDepth;
+            
+            // Add floor rows
+            const floorRows = 8;
+            for (let i = 0; i <= floorRows; i++) {
+                const t = i / floorRows;
+                const z = floorStartZ - t * floorDepth;
+                rows.push({ x: 0, y: floorY, z: z, nx: 0, ny: 1, nz: 0 });
+            }
+            
+            // Add curve rows (quarter circle from horizontal to vertical)
+            const curveRows = segments;
+            for (let i = 1; i <= curveRows; i++) {
+                const angle = (i / curveRows) * (Math.PI / 2);
+                const y = floorY + curveRadius * (1 - Math.cos(angle));
+                const z = curveStartZ - curveRadius * Math.sin(angle);
+                // Normal points outward from curve center
+                const nx = 0;
+                const ny = Math.cos(angle);
+                const nz = Math.sin(angle);
+                rows.push({ x: 0, y: y, z: z, nx: nx, ny: ny, nz: nz });
+            }
+            
+            // Add wall rows (vertical, going up)
+            const wallRows = 12;
+            const wallStartY = floorY + curveRadius;
+            const wallZ = curveStartZ - curveRadius;
+            for (let i = 1; i <= wallRows; i++) {
+                const t = i / wallRows;
+                const y = wallStartY + t * wallHeight;
+                rows.push({ x: 0, y: y, z: wallZ, nx: 0, ny: 0, nz: 1 });
+            }
+            
+            // Now create vertices for each row at left and right edges
+            let vertexIndex = 0;
+            for (let row of rows) {
+                // Left vertex
+                positions.push(-halfWidth, row.y, row.z);
+                normals.push(row.nx, row.ny, row.nz);
+                uvs.push(0, vertexIndex / (rows.length - 1));
+                
+                // Right vertex
+                positions.push(halfWidth, row.y, row.z);
+                normals.push(row.nx, row.ny, row.nz);
+                uvs.push(1, vertexIndex / (rows.length - 1));
+                
+                vertexIndex++;
+            }
+            
+            // Create triangles connecting the rows
+            // Winding order reversed so front faces point toward camera (positive Z)
+            for (let i = 0; i < rows.length - 1; i++) {
+                const topLeft = i * 2;
+                const topRight = i * 2 + 1;
+                const bottomLeft = (i + 1) * 2;
+                const bottomRight = (i + 1) * 2 + 1;
+                
+                // Two triangles per quad (reversed winding for correct facing)
+                indices.push(topLeft, topRight, bottomLeft);
+                indices.push(topRight, bottomRight, bottomLeft);
+            }
+            
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+            geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            geometry.setIndex(indices);
+            
+            // White felt-like material for museum backdrop
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xf5f5f5,
+                roughness: 0.95,
+                metalness: 0.0,
+                side: THREE.FrontSide
+            });
+            
+            museumBackdrop = new THREE.Mesh(geometry, material);
+            museumBackdrop.receiveShadow = true;
+            sharedScene.add(museumBackdrop);
+        }
+        
+        function createPointMarkers() {
+            const positions = MODEL_POINT_POSITIONS;
+            const radius = 8 / 3;  // Smaller markers for model view
+            
+            positions.forEach((pos, i) => {
+                const geometry = new THREE.SphereGeometry(radius, 24, 24);
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: POINT_COLORS[i],
+                    emissive: POINT_COLORS[i],
+                    emissiveIntensity: 0.4
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(pos.x, pos.y, pos.z);
+                sharedScene.add(sphere);
+                scenePoints.push(sphere);
+            });
+        }
+        
+        function updatePointPositions() {
+            const positions = MODEL_POINT_POSITIONS;
+            const radius = 8 / 3;  // Smaller markers for model view
+            scenePoints.forEach((sphere, i) => {
+                sphere.position.set(positions[i].x, positions[i].y, positions[i].z);
+                sphere.geometry.dispose();
+                sphere.geometry = new THREE.SphereGeometry(radius, 24, 24);
+            });
+        }
+        
+        function loadModel() {
+            const loader = new GLTFLoader();
+            loader.load(
+                'thai_mask/scene.gltf',
+                (gltf) => {
+                    loadedModel = gltf.scene;
+                    
+                    // Compute bounding box to properly center and scale
+                    const box = new THREE.Box3().setFromObject(loadedModel);
+                    const size = box.getSize(new THREE.Vector3());
+                    const center = box.getCenter(new THREE.Vector3());
+                    
+                    console.log('Model size:', size);
+                    console.log('Model center:', center);
+                    
+                    // Scale to make it roughly 200 units tall (2x larger)
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 200 / maxDim;
+                    loadedModel.scale.set(scale, scale, scale);
+                    
+                    // Recompute after scaling
+                    const boxScaled = new THREE.Box3().setFromObject(loadedModel);
+                    const centerScaled = boxScaled.getCenter(new THREE.Vector3());
+                    
+                    // Position so center is at (0, 0, -300)
+                    loadedModel.position.set(
+                        -centerScaled.x,
+                        -centerScaled.y,
+                        -300 - centerScaled.z
+                    );
+                    
+                    // Make sure the model receives proper lighting
+                    loadedModel.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
+                    
+                    sharedScene.add(loadedModel);
+                    loadedModel.visible = showModel;
+                    
+                    // Hide simple geometry when model loads
+                    updateSceneMode();
+                    
+                    console.log('Model loaded and positioned at z=-300');
+                    console.log('TIP: Shift+Click on the model in the God View to get surface coordinates!');
+                },
+                (progress) => {
+                    console.log('Loading model:', (progress.loaded / progress.total * 100).toFixed(1) + '%');
+                },
+                (error) => {
+                    console.error('Error loading model:', error);
+                    // Fall back to simple mode if model fails to load
+                    useModel = false;
+                    showModel = false;
+                    document.getElementById('toggleModel').classList.remove('active');
+                    updateSceneMode();
+                }
+            );
+        }
+        
+        // Raycaster for clicking on model to get coordinates
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let clickedPoints = [];
+        
+        function setupCoordinatePicker() {
+            const canvas = document.getElementById('godViewCanvas');
+            canvas.addEventListener('click', (event) => {
+                if (!event.shiftKey || !loadedModel) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                raycaster.setFromCamera(mouse, godCamera);
+                
+                const intersects = raycaster.intersectObject(loadedModel, true);
+                
+                if (intersects.length > 0) {
+                    const point = intersects[0].point;
+                    clickedPoints.push(point.clone());
+                    
+                    console.log(`%cPoint ${clickedPoints.length}: { x: ${point.x.toFixed(1)}, y: ${point.y.toFixed(1)}, z: ${point.z.toFixed(1)} }`, 'color: #4fc3f7; font-weight: bold;');
+                    
+                    // Visual feedback - add a small temporary sphere
+                    const marker = new THREE.Mesh(
+                        new THREE.SphereGeometry(3, 16, 16),
+                        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+                    );
+                    marker.position.copy(point);
+                    sharedScene.add(marker);
+                    
+                    // Remove after 3 seconds
+                    setTimeout(() => sharedScene.remove(marker), 3000);
+                }
+            });
+            
+            // Press 'p' to print all clicked points as a JS array
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'p' && clickedPoints.length > 0) {
+                    console.log('%c=== MODEL_POINT_POSITIONS array (copy this!) ===', 'color: #ffeb3b; font-weight: bold; font-size: 14px;');
+                    let output = 'const MODEL_POINT_POSITIONS = [\n';
+                    const labels = ['Left eye', 'Right eye', 'Nose tip', 'Left cheek', 'Right cheek', 'Forehead', 'Chin', 'Left ear', 'Right ear', 'Left temple'];
+                    clickedPoints.forEach((pt, i) => {
+                        const label = labels[i] || `Point ${i + 1}`;
+                        output += `    { x: ${pt.x.toFixed(1)}, y: ${pt.y.toFixed(1)}, z: ${pt.z.toFixed(1)} },   // ${label}\n`;
+                    });
+                    output += '];';
+                    console.log(output);
+                }
+                // Press 'c' to clear all clicked points
+                if (e.key === 'c') {
+                    clickedPoints = [];
+                    console.log('%cCleared all clicked points', 'color: #ff9800;');
+                }
+            });
+        }
+
+        function setupGodView() {
+            const canvas = document.getElementById('godViewCanvas');
+            
+            godCamera = new THREE.PerspectiveCamera(60, 1, 1, 3000);
+            godCamera.position.set(0, 450, 350);
+            godCamera.lookAt(0, 0, -300);
+            
+            godRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            godRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            godRenderer.shadowMap.enabled = true;
+            godRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            godControls = new OrbitControls(godCamera, canvas);
+            godControls.target.set(0, 0, -300);
+            godControls.enableDamping = true;
+            godControls.dampingFactor = 0.05;
+            godControls.maxPolarAngle = Math.PI * 0.9;
+            godControls.update();
+            
+            const axesHelper = new THREE.AxesHelper(60);
+            sharedScene.add(axesHelper);
+            
+            createCameraHelpers();
+        }
+
+        function createCameraHelpers() {
+            const camBodyGeo = new THREE.BoxGeometry(20, 15, 25);
+            const leftCamMat = new THREE.MeshPhongMaterial({ color: 0x5A8A8A });
+            leftCamMesh = new THREE.Mesh(camBodyGeo, leftCamMat);
+            sharedScene.add(leftCamMesh);
+            
+            const lensGeo = new THREE.CylinderGeometry(6, 8, 15, 16);
+            const lensMesh1 = new THREE.Mesh(lensGeo, new THREE.MeshPhongMaterial({ color: 0x3A5A5A }));
+            lensMesh1.rotation.x = Math.PI / 2;
+            lensMesh1.position.z = 18;
+            leftCamMesh.add(lensMesh1);
+            
+            const rightCamMat = new THREE.MeshPhongMaterial({ color: 0xC67864 });
+            rightCamMesh = new THREE.Mesh(camBodyGeo.clone(), rightCamMat);
+            sharedScene.add(rightCamMesh);
+            
+            const lensMesh2 = new THREE.Mesh(lensGeo.clone(), new THREE.MeshPhongMaterial({ color: 0x8A5044 }));
+            lensMesh2.rotation.x = Math.PI / 2;
+            lensMesh2.position.z = 18;
+            rightCamMesh.add(lensMesh2);
+            
+            const baselineMat = new THREE.LineBasicMaterial({ color: 0x9A9689 });
+            const baselineGeo = new THREE.BufferGeometry();
+            baselineLine = new THREE.Line(baselineGeo, baselineMat);
+            sharedScene.add(baselineLine);
+        }
+
+        function setupCameraViews() {
+            const leftCanvas = document.getElementById('leftView3D');
+            leftRenderer = new THREE.WebGLRenderer({ canvas: leftCanvas, antialias: true });
+            leftRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            leftRenderer.shadowMap.enabled = true;
+            leftRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            leftCamera = new THREE.PerspectiveCamera(90, 3/2, 1, 2000);
+            leftCamera.position.set(-70, 0, 0);
+            
+            const rightCanvas = document.getElementById('rightView3D');
+            rightRenderer = new THREE.WebGLRenderer({ canvas: rightCanvas, antialias: true });
+            rightRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            rightRenderer.shadowMap.enabled = true;
+            rightRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            rightCamera = new THREE.PerspectiveCamera(90, 3/2, 1, 2000);
+            rightCamera.position.set(70, 0, 0);
+            
+            leftFrustumHelper = new THREE.CameraHelper(leftCamera);
+            // Make frustum less vivid - more transparent
+            leftFrustumHelper.material.opacity = 0.35;
+            leftFrustumHelper.material.transparent = true;
+            sharedScene.add(leftFrustumHelper);
+            
+            rightFrustumHelper = new THREE.CameraHelper(rightCamera);
+            // Make frustum less vivid - more transparent
+            rightFrustumHelper.material.opacity = 0.35;
+            rightFrustumHelper.material.transparent = true;
+            sharedScene.add(rightFrustumHelper);
+        }
+
+        // ============================================
+        // CAMERA UPDATE FUNCTIONS
+        // ============================================
+        function updateCameraFromControls(camera, prefix) {
+            const x = parseFloat(document.getElementById(`${prefix}PosX`).value);
+            const y = parseFloat(document.getElementById(`${prefix}PosY`).value);
+            const z = parseFloat(document.getElementById(`${prefix}PosZ`).value);
+            const yaw = parseFloat(document.getElementById(`${prefix}Yaw`).value) * Math.PI / 180;
+            const pitch = parseFloat(document.getElementById(`${prefix}Pitch`).value) * Math.PI / 180;
+            const roll = parseFloat(document.getElementById(`${prefix}Roll`).value) * Math.PI / 180;
+            const focalLength = parseFloat(document.getElementById(`${prefix}Fov`).value);
+            // Convert focal length to FOV using 35mm full-frame sensor (36mm width)
+            // FOV = 2 * atan(sensorWidth / (2 * focalLength))
+            const sensorWidth = 36; // 35mm full-frame equivalent
+            const fov = 2 * Math.atan(sensorWidth / (2 * focalLength)) * 180 / Math.PI;
+            
+            document.getElementById(`${prefix}PosXVal`).textContent = x;
+            document.getElementById(`${prefix}PosYVal`).textContent = y;
+            document.getElementById(`${prefix}PosZVal`).textContent = z;
+            document.getElementById(`${prefix}YawVal`).textContent = document.getElementById(`${prefix}Yaw`).value;
+            document.getElementById(`${prefix}PitchVal`).textContent = document.getElementById(`${prefix}Pitch`).value;
+            document.getElementById(`${prefix}RollVal`).textContent = document.getElementById(`${prefix}Roll`).value;
+            document.getElementById(`${prefix}FovVal`).textContent = focalLength;
+            
+            camera.position.set(x, y, z);
+            camera.rotation.order = 'YXZ';
+            camera.rotation.set(-pitch, yaw, roll);
+            camera.fov = fov;
+            camera.updateProjectionMatrix();
+        }
+
+        function updateCameraHelpers() {
+            if (leftCamMesh) {
+                leftCamMesh.position.copy(leftCamera.position);
+                leftCamMesh.rotation.copy(leftCamera.rotation);
+            }
+            if (rightCamMesh) {
+                rightCamMesh.position.copy(rightCamera.position);
+                rightCamMesh.rotation.copy(rightCamera.rotation);
+            }
+            
+            leftCamera.updateMatrixWorld();
+            rightCamera.updateMatrixWorld();
+            
+            if (leftFrustumHelper) {
+                leftFrustumHelper.update();
+                leftFrustumHelper.visible = showFrustums;
+            }
+            if (rightFrustumHelper) {
+                rightFrustumHelper.update();
+                rightFrustumHelper.visible = showFrustums;
+            }
+            
+            if (baselineLine) {
+                const positions = new Float32Array([
+                    leftCamera.position.x, leftCamera.position.y, leftCamera.position.z,
+                    rightCamera.position.x, rightCamera.position.y, rightCamera.position.z
+                ]);
+                baselineLine.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                baselineLine.geometry.attributes.position.needsUpdate = true;
+                baselineLine.visible = showBaseline;
+            }
+            
+            updateEpipolarPlanes();
+        }
+
+        function updateEpipolarPlanes() {
+            epipolarPlanes.forEach(p => sharedScene.remove(p));
+            epipolarPlanes = [];
+            
+            if (!showEpipolarPlanes) return;
+            
+            scenePoints.forEach((point, i) => {
+                const vertices = new Float32Array([
+                    leftCamera.position.x, leftCamera.position.y, leftCamera.position.z,
+                    rightCamera.position.x, rightCamera.position.y, rightCamera.position.z,
+                    point.position.x, point.position.y, point.position.z
+                ]);
+                
+                const planeGeo = new THREE.BufferGeometry();
+                planeGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+                planeGeo.computeVertexNormals();
+                
+                const planeMat = new THREE.MeshBasicMaterial({
+                    color: POINT_COLORS[i],
+                    transparent: true,
+                    opacity: 0.12,
+                    side: THREE.DoubleSide,
+                    depthWrite: false
+                });
+                
+                const planeMesh = new THREE.Mesh(planeGeo, planeMat);
+                sharedScene.add(planeMesh);
+                epipolarPlanes.push(planeMesh);
+                
+                const edgeMat = new THREE.LineBasicMaterial({ 
+                    color: POINT_COLORS[i], 
+                    transparent: true, 
+                    opacity: 0.4 
+                });
+                const edgeGeo = new THREE.BufferGeometry();
+                edgeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+                    ...vertices.slice(0, 3), ...vertices.slice(3, 6),
+                    ...vertices.slice(3, 6), ...vertices.slice(6, 9),
+                    ...vertices.slice(6, 9), ...vertices.slice(0, 3)
+                ]), 3));
+                const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+                sharedScene.add(edges);
+                epipolarPlanes.push(edges);
+            });
+        }
+
+        // ============================================
+        // EPIPOLAR LINE DRAWING
+        // ============================================
+        
+        // Project a 3D point to 2D screen coordinates
+        function projectToScreen(worldPoint, camera, w, h) {
+            camera.updateMatrixWorld();
+            camera.updateProjectionMatrix();
+            
+            // Get point in camera space to check if in front
+            const camSpace = worldPoint.clone().applyMatrix4(camera.matrixWorldInverse);
+            const inFront = camSpace.z < 0; // Camera looks down -Z
+            
+            // Project to NDC
+            const ndc = worldPoint.clone().project(camera);
+            
+            // Convert to screen coords
+            const screenX = (ndc.x + 1) / 2 * w;
+            const screenY = (1 - ndc.y) / 2 * h;
+            
+            return {
+                x: screenX,
+                y: screenY,
+                inFront: inFront,
+                visible: inFront && screenX >= 0 && screenX <= w && screenY >= 0 && screenY <= h,
+                ndc: ndc
+            };
+        }
+
+        function drawEpipolarOverlay(overlayCanvas, camera, otherCamera, isLeft) {
+            const ctx = overlayCanvas.getContext('2d');
+            const w = overlayCanvas.width;
+            const h = overlayCanvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            // Draw border
+            ctx.strokeStyle = isLeft ? '#4fc3f7' : '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(1, 1, w - 2, h - 2);
+            
+            if (!showEpipolarLines) return;
+            
+            camera.updateMatrixWorld();
+            camera.updateProjectionMatrix();
+            
+            // Get the epipole (projection of other camera onto this camera's image)
+            const epipoleProj = projectToScreen(otherCamera.position, camera, w, h);
+            
+            // Draw epipolar lines for each point
+            scenePoints.forEach((pointMesh, i) => {
+                const pointProj = projectToScreen(pointMesh.position, camera, w, h);
+                
+                // The epipolar line passes through the projected point and the epipole
+                // We need to handle several cases:
+                // 1. Both point and epipole project normally -> draw line through both
+                // 2. Epipole at infinity (parallel cameras) -> use direction from baseline
+                // 3. Point behind camera -> flip the projection direction
+                
+                let lineDrawn = false;
+                
+                // Get direction vector for the epipolar line
+                let dx, dy;
+                
+                // Check if epipole is at a reasonable distance (not at infinity)
+                const epDist = Math.sqrt(
+                    (epipoleProj.x - cx) * (epipoleProj.x - cx) + 
+                    (epipoleProj.y - cy) * (epipoleProj.y - cy)
+                );
+                
+                if (epDist < 50000 && epipoleProj.inFront) {
+                    // Epipole is at a reasonable position - draw line through point and epipole
+                    dx = epipoleProj.x - pointProj.x;
+                    dy = epipoleProj.y - pointProj.y;
+                } else if (epDist < 50000 && !epipoleProj.inFront) {
+                    // Epipole is behind - line goes away from epipole
+                    dx = pointProj.x - epipoleProj.x;
+                    dy = pointProj.y - epipoleProj.y;
+                } else {
+                    // Epipole at infinity - compute direction from baseline in camera space
+                    const baseline = otherCamera.position.clone().sub(camera.position);
+                    // Transform baseline direction to camera space
+                    const camRotation = camera.quaternion.clone().invert();
+                    baseline.applyQuaternion(camRotation);
+                    
+                    // For a point at infinity along the baseline, the epipolar line direction
+                    // in the image is perpendicular to the baseline's y-component contribution
+                    // Simplified: horizontal baseline -> horizontal epipolar lines
+                    dx = baseline.x;
+                    dy = -baseline.y; // Flip Y because screen Y is inverted
+                }
+                
+                const len = Math.sqrt(dx * dx + dy * dy);
+                
+                if (len > 0.0001) {
+                    const ndx = dx / len;
+                    const ndy = dy / len;
+                    
+                    // Use the projected point position as anchor
+                    // But if point is behind camera, we need to handle it
+                    let anchorX = pointProj.x;
+                    let anchorY = pointProj.y;
+                    
+                    // If the projected values are extreme (point behind camera), 
+                    // use the epipole as anchor instead and flip direction
+                    if (!pointProj.inFront || Math.abs(anchorX) > 10000 || Math.abs(anchorY) > 10000) {
+                        if (epipoleProj.inFront && Math.abs(epipoleProj.x) < 10000) {
+                            anchorX = epipoleProj.x;
+                            anchorY = epipoleProj.y;
+                        } else {
+                            anchorX = cx;
+                            anchorY = cy;
+                        }
+                    }
+                    
+                    // Draw line extending far in both directions
+                    ctx.strokeStyle = POINT_COLORS_HEX[i];
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.7;
+                    ctx.beginPath();
+                    ctx.moveTo(anchorX - ndx * 3000, anchorY - ndy * 3000);
+                    ctx.lineTo(anchorX + ndx * 3000, anchorY + ndy * 3000);
+                    ctx.stroke();
+                    lineDrawn = true;
+                }
+                
+                // Draw point marker if visible
+                if (pointProj.visible) {
+                    ctx.globalAlpha = 1.0;
+                    ctx.fillStyle = POINT_COLORS_HEX[i];
+                    ctx.beginPath();
+                    ctx.arc(pointProj.x, pointProj.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            });
+            
+            ctx.globalAlpha = 1.0;
+            
+            // Draw epipole indicator
+            if (epipoleProj.inFront && Math.abs(epipoleProj.x) < 10000 && Math.abs(epipoleProj.y) < 10000) {
+                if (epipoleProj.visible) {
+                    // Epipole is visible on screen
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(epipoleProj.x, epipoleProj.y, 9, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = isLeft ? '#ff6b6b' : '#4fc3f7';
+                    ctx.beginPath();
+                    ctx.arc(epipoleProj.x, epipoleProj.y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('e', epipoleProj.x, epipoleProj.y + 4);
+                } else {
+                    // Epipole is in front but off-screen - draw arrow
+                    const dx = epipoleProj.x - cx;
+                    const dy = epipoleProj.y - cy;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    if (len > 0.01) {
+                        const ndx = dx / len;
+                        const ndy = dy / len;
+                        
+                        const margin = 25;
+                        let arrowX, arrowY;
+                        
+                        // Find intersection with canvas edge
+                        const tRight = (w - margin - cx) / ndx;
+                        const tLeft = (margin - cx) / ndx;
+                        const tBottom = (h - margin - cy) / ndy;
+                        const tTop = (margin - cy) / ndy;
+                        
+                        let minT = Infinity;
+                        if (ndx > 0 && tRight > 0 && tRight < minT) minT = tRight;
+                        if (ndx < 0 && tLeft > 0 && tLeft < minT) minT = tLeft;
+                        if (ndy > 0 && tBottom > 0 && tBottom < minT) minT = tBottom;
+                        if (ndy < 0 && tTop > 0 && tTop < minT) minT = tTop;
+                        
+                        if (minT < Infinity) {
+                            arrowX = cx + ndx * minT;
+                            arrowY = cy + ndy * minT;
+                            arrowX = Math.max(margin, Math.min(w - margin, arrowX));
+                            arrowY = Math.max(margin, Math.min(h - margin, arrowY));
+                            
+                            ctx.fillStyle = isLeft ? '#ff6b6b' : '#4fc3f7';
+                            ctx.beginPath();
+                            ctx.arc(arrowX, arrowY, 6, 0, Math.PI * 2);
+                            ctx.fill();
+                            
+                            const angle = Math.atan2(ndy, ndx);
+                            ctx.strokeStyle = isLeft ? '#ff6b6b' : '#4fc3f7';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(arrowX, arrowY);
+                            ctx.lineTo(arrowX + ndx * 12, arrowY + ndy * 12);
+                            ctx.stroke();
+                            
+                            ctx.font = '9px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('epipole', arrowX, arrowY - 12);
+                        }
+                    }
+                }
+            }
+        }
+
+        // ============================================
+        // PRESET & CONTROLS
+        // ============================================
+        function setPreset(presetName) {
+            const preset = PRESETS[presetName];
+            if (!preset) return;
+            
+            document.getElementById('configTitle').textContent = preset.name;
+            document.getElementById('configDescription').textContent = preset.description;
+            
+            ['left', 'right'].forEach(side => {
+                const p = preset[side];
+                document.getElementById(`${side}PosX`).value = p.x;
+                document.getElementById(`${side}PosY`).value = p.y;
+                document.getElementById(`${side}PosZ`).value = p.z;
+                document.getElementById(`${side}Yaw`).value = p.yaw;
+                document.getElementById(`${side}Pitch`).value = p.pitch;
+                document.getElementById(`${side}Roll`).value = p.roll;
+                document.getElementById(`${side}Fov`).value = p.fov;
+            });
+            
+            updateCameraFromControls(leftCamera, 'left');
+            updateCameraFromControls(rightCamera, 'right');
+            updateCameraHelpers();
+            
+            // Reset homography matrices when preset changes cameras
+            if (window.resetHomography) window.resetHomography('both');
+            
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.preset === presetName);
+            });
+        }
+
+        function setupControls() {
+            const sliderIds = [
+                'leftPosX', 'leftPosY', 'leftPosZ', 'leftYaw', 'leftPitch', 'leftRoll', 'leftFov',
+                'rightPosX', 'rightPosY', 'rightPosZ', 'rightYaw', 'rightPitch', 'rightRoll', 'rightFov'
+            ];
+            
+            sliderIds.forEach(id => {
+                document.getElementById(id).addEventListener('input', () => {
+                    updateCameraFromControls(leftCamera, 'left');
+                    updateCameraFromControls(rightCamera, 'right');
+                    updateCameraHelpers();
+                    document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+                    // Reset homography matrices when cameras change
+                    if (window.resetHomography) window.resetHomography('both');
+                });
+            });
+            
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => setPreset(btn.dataset.preset));
+            });
+            
+            document.getElementById('resetBtn').addEventListener('click', () => setPreset('ideal'));
+            
+            document.getElementById('toggleFrustums').addEventListener('click', function() {
+                showFrustums = !showFrustums;
+                this.classList.toggle('active', showFrustums);
+                updateCameraHelpers();
+            });
+            
+            document.getElementById('toggleBaseline').addEventListener('click', function() {
+                showBaseline = !showBaseline;
+                this.classList.toggle('active', showBaseline);
+                updateCameraHelpers();
+            });
+            
+            document.getElementById('togglePlanes').addEventListener('click', function() {
+                showEpipolarPlanes = !showEpipolarPlanes;
+                this.classList.toggle('active', showEpipolarPlanes);
+                updateCameraHelpers();
+            });
+            
+            document.getElementById('toggleLines').addEventListener('click', function() {
+                showEpipolarLines = !showEpipolarLines;
+                this.classList.toggle('active', showEpipolarLines);
+            });
+            
+            updateCameraFromControls(leftCamera, 'left');
+            updateCameraFromControls(rightCamera, 'right');
+            updateCameraHelpers();
+        }
+
+        // ============================================
+        // ANIMATION LOOP
+        // ============================================
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            godControls.update();
+            
+            // God view: show everything
+            leftCamMesh.visible = true;
+            rightCamMesh.visible = true;
+            leftFrustumHelper.visible = showFrustums;
+            rightFrustumHelper.visible = showFrustums;
+            baselineLine.visible = showBaseline;
+            epipolarPlanes.forEach(p => p.visible = showEpipolarPlanes);
+            
+            godRenderer.render(sharedScene, godCamera);
+            
+            // Stereo views: hide helpers
+            leftCamMesh.visible = false;
+            rightCamMesh.visible = false;
+            leftFrustumHelper.visible = false;
+            rightFrustumHelper.visible = false;
+            baselineLine.visible = false;
+            epipolarPlanes.forEach(p => p.visible = false);
+            
+            leftRenderer.render(sharedScene, leftCamera);
+            rightRenderer.render(sharedScene, rightCamera);
+            
+            // Restore visibility
+            leftCamMesh.visible = true;
+            rightCamMesh.visible = true;
+            leftFrustumHelper.visible = showFrustums;
+            rightFrustumHelper.visible = showFrustums;
+            baselineLine.visible = showBaseline;
+            epipolarPlanes.forEach(p => p.visible = showEpipolarPlanes);
+            
+            // Draw epipolar overlays
+            drawEpipolarOverlay(document.getElementById('leftViewOverlay'), leftCamera, rightCamera, true);
+            drawEpipolarOverlay(document.getElementById('rightViewOverlay'), rightCamera, leftCamera, false);
+        }
+
+        // ============================================
+        // RESIZE HANDLING
+        // ============================================
+        function onResize() {
+            const godCanvas = document.getElementById('godViewCanvas');
+            const godRect = godCanvas.parentElement.getBoundingClientRect();
+            const godHeight = 510;
+            godRenderer.setSize(godRect.width, godHeight);
+            godCamera.aspect = godRect.width / godHeight;
+            godCamera.updateProjectionMatrix();
+            
+            const leftCanvas = document.getElementById('leftView3D');
+            const leftOverlay = document.getElementById('leftViewOverlay');
+            const leftRect = leftCanvas.parentElement.getBoundingClientRect();
+            const leftW = leftRect.width;
+            const leftH = Math.round(leftW * 2/3); // 3:2 aspect ratio
+            leftRenderer.setSize(leftW, leftH);
+            leftOverlay.width = leftW;
+            leftOverlay.height = leftH;
+            leftCamera.aspect = leftW / leftH;
+            leftCamera.updateProjectionMatrix();
+            
+            const rightCanvas = document.getElementById('rightView3D');
+            const rightOverlay = document.getElementById('rightViewOverlay');
+            const rightRect = rightCanvas.parentElement.getBoundingClientRect();
+            const rightW = rightRect.width;
+            const rightH = Math.round(rightW * 2/3); // 3:2 aspect ratio
+            rightRenderer.setSize(rightW, rightH);
+            rightOverlay.width = rightW;
+            rightOverlay.height = rightH;
+            rightCamera.aspect = rightW / rightH;
+            rightCamera.updateProjectionMatrix();
+        }
+
+        // ============================================
+        // RECTIFICATION MODAL
+        // ============================================
+        let rectifyModalOpen = false;
+        let rectifyAnimationId = null;
+        
+        // Snapshot images for rectification
+        let leftSnapshot = null;
+        let rightSnapshot = null;
+        
+        // Homography parameters for left and right
+        const h1Params = { rot: 0, scaleX: 1, scaleY: 1, shearX: 0, shearY: 0, tx: 0, ty: 0, px: 0, py: 0, h33: 1 };
+        const h2Params = { rot: 0, scaleX: 1, scaleY: 1, shearX: 0, shearY: 0, tx: 0, ty: 0, px: 0, py: 0, h33: 1 };
+        
+        function captureSnapshots() {
+            // Hide helpers for clean snapshots
+            leftCamMesh.visible = false;
+            rightCamMesh.visible = false;
+            leftFrustumHelper.visible = false;
+            rightFrustumHelper.visible = false;
+            baselineLine.visible = false;
+            epipolarPlanes.forEach(p => p.visible = false);
+            
+            // Render and capture left camera view
+            leftRenderer.render(sharedScene, leftCamera);
+            leftSnapshot = new Image();
+            leftSnapshot.src = leftRenderer.domElement.toDataURL();
+            
+            // Render and capture right camera view
+            rightRenderer.render(sharedScene, rightCamera);
+            rightSnapshot = new Image();
+            rightSnapshot.src = rightRenderer.domElement.toDataURL();
+            
+            // Restore visibility
+            leftCamMesh.visible = true;
+            rightCamMesh.visible = true;
+            leftFrustumHelper.visible = document.getElementById('toggleFrustums').classList.contains('active');
+            rightFrustumHelper.visible = document.getElementById('toggleFrustums').classList.contains('active');
+            baselineLine.visible = document.getElementById('toggleBaseline').classList.contains('active');
+            epipolarPlanes.forEach(p => p.visible = document.getElementById('togglePlanes').classList.contains('active'));
+        }
+        
+        function openRectifyModal() {
+            // Capture snapshots before opening modal
+            captureSnapshots();
+            
+            document.getElementById('rectifyModal').classList.add('active');
+            rectifyModalOpen = true;
+            initRectifyRenderers();
+            
+            // Wait for snapshots to load, then start rendering
+            Promise.all([
+                new Promise(resolve => { leftSnapshot.onload = resolve; if (leftSnapshot.complete) resolve(); }),
+                new Promise(resolve => { rightSnapshot.onload = resolve; if (rightSnapshot.complete) resolve(); })
+            ]).then(() => {
+                animateRectify();
+            });
+        }
+        
+        function closeRectifyModal() {
+            document.getElementById('rectifyModal').classList.remove('active');
+            rectifyModalOpen = false;
+            if (rectifyAnimationId) {
+                cancelAnimationFrame(rectifyAnimationId);
+                rectifyAnimationId = null;
+            }
+        }
+        
+        function initRectifyRenderers() {
+            // Only init once
+            if (rectifyInitialized) return;
+            rectifyInitialized = true;
+            
+            resizeRectifyCanvases();
+            setupHomographyControls();
+        }
+        
+        let rectifyInitialized = false;
+        
+        function resizeRectifyCanvases() {
+            const viewWrappers = document.querySelectorAll('.rectify-view .view-wrapper');
+            if (viewWrappers.length === 0) return;
+            
+            const rect = viewWrappers[0].getBoundingClientRect();
+            const w = rect.width || 300;
+            const h = Math.round(w * 2/3); // 3:2 aspect ratio
+            
+            // Resize all 2D overlay canvases
+            ['rectLeftOrigOverlay', 'rectRightOrigOverlay', 'rectLeftTransOverlay', 'rectRightTransOverlay'].forEach(id => {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    canvas.width = w;
+                    canvas.height = h;
+                }
+            });
+        }
+        
+        function buildHomographyMatrix(params) {
+            const theta = params.rot * Math.PI / 180;
+            const cos = Math.cos(theta);
+            const sin = Math.sin(theta);
+            
+            // Rotation
+            const R = [[cos, -sin], [sin, cos]];
+            // Scale
+            const S = [[params.scaleX, 0], [0, params.scaleY]];
+            // Shear
+            const Sh = [[1, params.shearX], [params.shearY, 1]];
+            
+            // Combine: R * S * Sh
+            const RS = [
+                [R[0][0]*S[0][0], R[0][1]*S[1][1]],
+                [R[1][0]*S[0][0], R[1][1]*S[1][1]]
+            ];
+            const RSSh = [
+                [RS[0][0]*Sh[0][0] + RS[0][1]*Sh[1][0], RS[0][0]*Sh[0][1] + RS[0][1]*Sh[1][1]],
+                [RS[1][0]*Sh[0][0] + RS[1][1]*Sh[1][0], RS[1][0]*Sh[0][1] + RS[1][1]*Sh[1][1]]
+            ];
+            
+            return [
+                [RSSh[0][0], RSSh[0][1], params.tx],
+                [RSSh[1][0], RSSh[1][1], params.ty],
+                [params.px, params.py, params.h33]
+            ];
+        }
+        
+        function applyHomography(H, x, y) {
+            const xh = H[0][0]*x + H[0][1]*y + H[0][2];
+            const yh = H[1][0]*x + H[1][1]*y + H[1][2];
+            const w = H[2][0]*x + H[2][1]*y + H[2][2];
+            if (Math.abs(w) < 0.0001) return { x: x, y: y };
+            return { x: xh/w, y: yh/w };
+        }
+        
+        function updateMatrixDisplay(prefix, H) {
+            document.getElementById(`${prefix}_00`).textContent = H[0][0].toFixed(2);
+            document.getElementById(`${prefix}_01`).textContent = H[0][1].toFixed(2);
+            document.getElementById(`${prefix}_02`).textContent = H[0][2].toFixed(0);
+            document.getElementById(`${prefix}_10`).textContent = H[1][0].toFixed(2);
+            document.getElementById(`${prefix}_11`).textContent = H[1][1].toFixed(2);
+            document.getElementById(`${prefix}_12`).textContent = H[1][2].toFixed(0);
+            document.getElementById(`${prefix}_20`).textContent = H[2][0].toFixed(4);
+            document.getElementById(`${prefix}_21`).textContent = H[2][1].toFixed(4);
+            document.getElementById(`${prefix}_22`).textContent = H[2][2].toFixed(2);
+        }
+        
+        // Invert a 3x3 homography matrix
+        function invertHomography(H) {
+            const a = H[0][0], b = H[0][1], c = H[0][2];
+            const d = H[1][0], e = H[1][1], f = H[1][2];
+            const g = H[2][0], h = H[2][1], i = H[2][2];
+            
+            const det = a*(e*i - f*h) - b*(d*i - f*g) + c*(d*h - e*g);
+            if (Math.abs(det) < 1e-10) return null;
+            
+            const invDet = 1 / det;
+            return [
+                [(e*i - f*h) * invDet, (c*h - b*i) * invDet, (b*f - c*e) * invDet],
+                [(f*g - d*i) * invDet, (a*i - c*g) * invDet, (c*d - a*f) * invDet],
+                [(d*h - e*g) * invDet, (b*g - a*h) * invDet, (a*e - b*d) * invDet]
+            ];
+        }
+        
+        // Draw warped image using homography (grid-based approach for performance)
+        function drawWarpedImage(canvas, sourceImage, H, isLeft) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            // Background
+            ctx.fillStyle = '#0a0f1a';
+            ctx.fillRect(0, 0, w, h);
+            
+            if (!sourceImage || !sourceImage.complete) {
+                ctx.fillStyle = '#888';
+                ctx.font = '14px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('Loading...', cx, cy);
+                return;
+            }
+            
+            // Get inverse homography for backward mapping
+            const Hinv = invertHomography(H);
+            if (!Hinv) {
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = '14px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('Singular matrix', cx, cy);
+                return;
+            }
+            
+            // Scale factors for source image to canvas
+            const srcW = sourceImage.width;
+            const srcH = sourceImage.height;
+            const scaleX = srcW / w;
+            const scaleY = srcH / h;
+            
+            // Draw using a grid of small quads for performance
+            // Each quad maps 4 corners through inverse homography
+            const gridSize = 8; // pixels per grid cell
+            
+            for (let destY = 0; destY < h; destY += gridSize) {
+                for (let destX = 0; destX < w; destX += gridSize) {
+                    const cellW = Math.min(gridSize, w - destX);
+                    const cellH = Math.min(gridSize, h - destY);
+                    
+                    // Transform corners of this cell back to source coords
+                    const corners = [
+                        [destX, destY],
+                        [destX + cellW, destY],
+                        [destX + cellW, destY + cellH],
+                        [destX, destY + cellH]
+                    ];
+                    
+                    const srcCorners = corners.map(([x, y]) => {
+                        // Convert to centered coords, apply inverse H, convert back
+                        const src = applyHomography(Hinv, x - cx, y - cy);
+                        return [cx + src.x, cy + src.y];
+                    });
+                    
+                    // Check if any source corner is way out of bounds
+                    const allValid = srcCorners.every(([sx, sy]) => 
+                        sx >= -w && sx <= 2*w && sy >= -h && sy <= 2*h
+                    );
+                    
+                    if (!allValid) continue;
+                    
+                    // Use canvas transform to draw this quad
+                    // We'll approximate with an affine transform (works well for small cells)
+                    ctx.save();
+                    
+                    // Calculate affine transform from dest quad to source quad
+                    // Using first 3 corners: top-left, top-right, bottom-left
+                    const [sx0, sy0] = srcCorners[0];
+                    const [sx1, sy1] = srcCorners[1];
+                    const [sx3, sy3] = srcCorners[3];
+                    
+                    // Dest coords
+                    const dx0 = destX, dy0 = destY;
+                    const dx1 = destX + cellW, dy1 = destY;
+                    const dx3 = destX, dy3 = destY + cellH;
+                    
+                    // We need to transform from dest to source, then draw
+                    // setTransform takes: a, b, c, d, e, f where:
+                    // x' = a*x + c*y + e, y' = b*x + d*y + f
+                    
+                    // But we need to draw source at dest, so we set up transform
+                    // that maps source coords to dest coords
+                    ctx.beginPath();
+                    ctx.moveTo(destX, destY);
+                    ctx.lineTo(destX + cellW, destY);
+                    ctx.lineTo(destX + cellW, destY + cellH);
+                    ctx.lineTo(destX, destY + cellH);
+                    ctx.closePath();
+                    ctx.clip();
+                    
+                    // Compute affine transform from source to dest
+                    // We solve: destPt = M * srcPt
+                    const denom = (sx0 - sx1) * (sy0 - sy3) - (sx0 - sx3) * (sy0 - sy1);
+                    if (Math.abs(denom) > 0.001) {
+                        const a = ((dx0 - dx1) * (sy0 - sy3) - (dx0 - dx3) * (sy0 - sy1)) / denom;
+                        const c = ((dx0 - dx1) * (sx0 - sx3) - (dx0 - dx3) * (sx0 - sx1)) / -denom;
+                        const e = dx0 - a * sx0 - c * sy0;
+                        
+                        const b = ((dy0 - dy1) * (sy0 - sy3) - (dy0 - dy3) * (sy0 - sy1)) / denom;
+                        const d = ((dy0 - dy1) * (sx0 - sx3) - (dy0 - dy3) * (sx0 - sx1)) / -denom;
+                        const f = dy0 - b * sx0 - d * sy0;
+                        
+                        ctx.setTransform(a, b, c, d, e, f);
+                        ctx.drawImage(sourceImage, 0, 0, srcW, srcH, 0, 0, w, h);
+                    }
+                    
+                    ctx.restore();
+                }
+            }
+            
+            // Draw border
+            ctx.strokeStyle = isLeft ? '#4fc3f7' : '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(1, 1, w - 2, h - 2);
+        }
+        
+        function drawRectifiedOverlay(canvas, camera, otherCamera, H, isLeft) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            
+            // Don't clear - we're drawing on top of the warped image
+            
+            // Draw border
+            ctx.strokeStyle = isLeft ? '#4fc3f7' : '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(1, 1, w - 2, h - 2);
+            
+            camera.updateMatrixWorld();
+            camera.updateProjectionMatrix();
+            
+            const epipoleProj = projectToScreen(otherCamera.position, camera, w, h);
+            
+            // Apply homography to epipole position (centered coords)
+            const epTransformed = applyHomography(H, epipoleProj.x - cx, epipoleProj.y - cy);
+            const epx = cx + epTransformed.x;
+            const epy = cy + epTransformed.y;
+            
+            const epDist = Math.sqrt((epx - cx) * (epx - cx) + (epy - cy) * (epy - cy));
+            
+            scenePoints.forEach((pointMesh, i) => {
+                const pointProj = projectToScreen(pointMesh.position, camera, w, h);
+                
+                // Apply homography to point position (centered coords)
+                const pTransformed = applyHomography(H, pointProj.x - cx, pointProj.y - cy);
+                const px = cx + pTransformed.x;
+                const py = cy + pTransformed.y;
+                
+                // Use same logic as drawEpipolarOverlay
+                let dx, dy;
+                
+                if (epDist < 50000 && epipoleProj.inFront) {
+                    dx = epx - px;
+                    dy = epy - py;
+                } else if (epDist < 50000 && !epipoleProj.inFront) {
+                    dx = px - epx;
+                    dy = py - epy;
+                } else {
+                    // Epipole at infinity - compute direction from baseline in camera space
+                    const baseline = otherCamera.position.clone().sub(camera.position);
+                    const camRotation = camera.quaternion.clone().invert();
+                    baseline.applyQuaternion(camRotation);
+                    
+                    // Transform baseline direction by the linear part of H
+                    const bx = baseline.x;
+                    const by = -baseline.y;
+                    dx = bx * H[0][0] + by * H[0][1];
+                    dy = bx * H[1][0] + by * H[1][1];
+                }
+                
+                const len = Math.sqrt(dx * dx + dy * dy);
+                
+                if (len > 0.0001) {
+                    const ndx = dx / len;
+                    const ndy = dy / len;
+                    
+                    let anchorX = px;
+                    let anchorY = py;
+                    
+                    // Handle extreme projections
+                    if (!pointProj.inFront || Math.abs(px - cx) > 10000 || Math.abs(py - cy) > 10000) {
+                        if (epipoleProj.inFront && Math.abs(epx - cx) < 10000) {
+                            anchorX = epx;
+                            anchorY = epy;
+                        } else {
+                            anchorX = cx;
+                            anchorY = cy;
+                        }
+                    }
+                    
+                    ctx.strokeStyle = POINT_COLORS_HEX[i];
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.7;
+                    ctx.beginPath();
+                    ctx.moveTo(anchorX - ndx * 3000, anchorY - ndy * 3000);
+                    ctx.lineTo(anchorX + ndx * 3000, anchorY + ndy * 3000);
+                    ctx.stroke();
+                }
+                
+                // Draw point marker if visible
+                if (pointProj.inFront && px >= -50 && px <= w + 50 && py >= -50 && py <= h + 50) {
+                    ctx.globalAlpha = 1.0;
+                    ctx.fillStyle = POINT_COLORS_HEX[i];
+                    ctx.beginPath();
+                    ctx.arc(px, py, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            });
+            
+            ctx.globalAlpha = 1.0;
+        }
+        
+        function animateRectify() {
+            if (!rectifyModalOpen) return;
+            
+            rectifyAnimationId = requestAnimationFrame(animateRectify);
+            
+            // Draw original snapshots with epipolar lines
+            const leftOrigCanvas = document.getElementById('rectLeftOrigOverlay');
+            const rightOrigCanvas = document.getElementById('rectRightOrigOverlay');
+            
+            // Draw original left image (identity homography - just the snapshot)
+            if (leftSnapshot && leftSnapshot.complete) {
+                const ctx = leftOrigCanvas.getContext('2d');
+                const w = leftOrigCanvas.width;
+                const h = leftOrigCanvas.height;
+                ctx.clearRect(0, 0, w, h);
+                ctx.drawImage(leftSnapshot, 0, 0, w, h);
+                // Draw epipolar lines on top
+                drawEpipolarLinesOnly(leftOrigCanvas, leftCamera, rightCamera, true);
+            }
+            
+            // Draw original right image
+            if (rightSnapshot && rightSnapshot.complete) {
+                const ctx = rightOrigCanvas.getContext('2d');
+                const w = rightOrigCanvas.width;
+                const h = rightOrigCanvas.height;
+                ctx.clearRect(0, 0, w, h);
+                ctx.drawImage(rightSnapshot, 0, 0, w, h);
+                drawEpipolarLinesOnly(rightOrigCanvas, rightCamera, leftCamera, false);
+            }
+            
+            // Draw transformed/warped views with epipolar lines
+            const leftTransCanvas = document.getElementById('rectLeftTransOverlay');
+            const rightTransCanvas = document.getElementById('rectRightTransOverlay');
+            
+            const H1 = buildHomographyMatrix(h1Params);
+            const H2 = buildHomographyMatrix(h2Params);
+            updateMatrixDisplay('h1', H1);
+            updateMatrixDisplay('h2', H2);
+            
+            // Draw warped left image
+            if (leftSnapshot && leftSnapshot.complete) {
+                drawWarpedImage(leftTransCanvas, leftSnapshot, H1, true);
+                drawRectifiedOverlay(leftTransCanvas, leftCamera, rightCamera, H1, true);
+            }
+            
+            // Draw warped right image
+            if (rightSnapshot && rightSnapshot.complete) {
+                drawWarpedImage(rightTransCanvas, rightSnapshot, H2, false);
+                drawRectifiedOverlay(rightTransCanvas, rightCamera, leftCamera, H2, false);
+            }
+        }
+        
+        // Draw only epipolar lines (no background clear)
+        function drawEpipolarLinesOnly(canvas, camera, otherCamera, isLeft) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            
+            // Draw border
+            ctx.strokeStyle = isLeft ? '#4fc3f7' : '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(1, 1, w - 2, h - 2);
+            
+            camera.updateMatrixWorld();
+            camera.updateProjectionMatrix();
+            
+            const epipoleProj = projectToScreen(otherCamera.position, camera, w, h);
+            const epDist = Math.sqrt((epipoleProj.x - cx) * (epipoleProj.x - cx) + (epipoleProj.y - cy) * (epipoleProj.y - cy));
+            
+            scenePoints.forEach((pointMesh, i) => {
+                const pointProj = projectToScreen(pointMesh.position, camera, w, h);
+                const px = pointProj.x;
+                const py = pointProj.y;
+                
+                let dx, dy;
+                if (epDist < 50000 && epipoleProj.inFront) {
+                    dx = epipoleProj.x - px;
+                    dy = epipoleProj.y - py;
+                } else if (epDist < 50000 && !epipoleProj.inFront) {
+                    dx = px - epipoleProj.x;
+                    dy = py - epipoleProj.y;
+                } else {
+                    const baseline = otherCamera.position.clone().sub(camera.position);
+                    const camRotation = camera.quaternion.clone().invert();
+                    baseline.applyQuaternion(camRotation);
+                    dx = baseline.x;
+                    dy = -baseline.y;
+                }
+                
+                const len = Math.sqrt(dx * dx + dy * dy);
+                if (len > 0.0001) {
+                    const ndx = dx / len;
+                    const ndy = dy / len;
+                    
+                    let anchorX = px, anchorY = py;
+                    if (!pointProj.inFront || Math.abs(px - cx) > 10000 || Math.abs(py - cy) > 10000) {
+                        if (epipoleProj.inFront && Math.abs(epipoleProj.x - cx) < 10000) {
+                            anchorX = epipoleProj.x;
+                            anchorY = epipoleProj.y;
+                        } else {
+                            anchorX = cx;
+                            anchorY = cy;
+                        }
+                    }
+                    
+                    ctx.strokeStyle = POINT_COLORS_HEX[i];
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.7;
+                    ctx.beginPath();
+                    ctx.moveTo(anchorX - ndx * 3000, anchorY - ndy * 3000);
+                    ctx.lineTo(anchorX + ndx * 3000, anchorY + ndy * 3000);
+                    ctx.stroke();
+                }
+                
+                if (pointProj.inFront && px >= -50 && px <= w + 50 && py >= -50 && py <= h + 50) {
+                    ctx.globalAlpha = 1.0;
+                    ctx.fillStyle = POINT_COLORS_HEX[i];
+                    ctx.beginPath();
+                    ctx.arc(px, py, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            });
+            
+            ctx.globalAlpha = 1.0;
+        }
+        
+        function setupHomographyControls() {
+            // H1 controls
+            const h1Controls = ['h1Rot', 'h1ScaleX', 'h1ScaleY', 'h1ShearX', 'h1ShearY', 'h1Tx', 'h1Ty', 'h1Px', 'h1Py', 'h1H33'];
+            h1Controls.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', () => {
+                        h1Params.rot = parseFloat(document.getElementById('h1Rot').value);
+                        h1Params.scaleX = parseFloat(document.getElementById('h1ScaleX').value);
+                        h1Params.scaleY = parseFloat(document.getElementById('h1ScaleY').value);
+                        h1Params.shearX = parseFloat(document.getElementById('h1ShearX').value);
+                        h1Params.shearY = parseFloat(document.getElementById('h1ShearY').value);
+                        h1Params.tx = parseFloat(document.getElementById('h1Tx').value);
+                        h1Params.ty = parseFloat(document.getElementById('h1Ty').value);
+                        h1Params.px = parseFloat(document.getElementById('h1Px').value);
+                        h1Params.py = parseFloat(document.getElementById('h1Py').value);
+                        h1Params.h33 = parseFloat(document.getElementById('h1H33').value);
+                        
+                        document.getElementById('h1RotVal').textContent = h1Params.rot + '°';
+                        document.getElementById('h1ScaleXVal').textContent = h1Params.scaleX.toFixed(2);
+                        document.getElementById('h1ScaleYVal').textContent = h1Params.scaleY.toFixed(2);
+                        document.getElementById('h1ShearXVal').textContent = h1Params.shearX.toFixed(2);
+                        document.getElementById('h1ShearYVal').textContent = h1Params.shearY.toFixed(2);
+                        document.getElementById('h1TxVal').textContent = h1Params.tx;
+                        document.getElementById('h1TyVal').textContent = h1Params.ty;
+                        document.getElementById('h1PxVal').textContent = h1Params.px.toFixed(4);
+                        document.getElementById('h1PyVal').textContent = h1Params.py.toFixed(4);
+                        document.getElementById('h1H33Val').textContent = h1Params.h33.toFixed(2);
+                    });
+                }
+            });
+            
+            // H2 controls
+            const h2Controls = ['h2Rot', 'h2ScaleX', 'h2ScaleY', 'h2ShearX', 'h2ShearY', 'h2Tx', 'h2Ty', 'h2Px', 'h2Py', 'h2H33'];
+            h2Controls.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', () => {
+                        h2Params.rot = parseFloat(document.getElementById('h2Rot').value);
+                        h2Params.scaleX = parseFloat(document.getElementById('h2ScaleX').value);
+                        h2Params.scaleY = parseFloat(document.getElementById('h2ScaleY').value);
+                        h2Params.shearX = parseFloat(document.getElementById('h2ShearX').value);
+                        h2Params.shearY = parseFloat(document.getElementById('h2ShearY').value);
+                        h2Params.tx = parseFloat(document.getElementById('h2Tx').value);
+                        h2Params.ty = parseFloat(document.getElementById('h2Ty').value);
+                        h2Params.px = parseFloat(document.getElementById('h2Px').value);
+                        h2Params.py = parseFloat(document.getElementById('h2Py').value);
+                        h2Params.h33 = parseFloat(document.getElementById('h2H33').value);
+                        
+                        document.getElementById('h2RotVal').textContent = h2Params.rot + '°';
+                        document.getElementById('h2ScaleXVal').textContent = h2Params.scaleX.toFixed(2);
+                        document.getElementById('h2ScaleYVal').textContent = h2Params.scaleY.toFixed(2);
+                        document.getElementById('h2ShearXVal').textContent = h2Params.shearX.toFixed(2);
+                        document.getElementById('h2ShearYVal').textContent = h2Params.shearY.toFixed(2);
+                        document.getElementById('h2TxVal').textContent = h2Params.tx;
+                        document.getElementById('h2TyVal').textContent = h2Params.ty;
+                        document.getElementById('h2PxVal').textContent = h2Params.px.toFixed(4);
+                        document.getElementById('h2PyVal').textContent = h2Params.py.toFixed(4);
+                        document.getElementById('h2H33Val').textContent = h2Params.h33.toFixed(2);
+                    });
+                }
+            });
+        }
+        
+        // Tab switching for homography controls
+        window.setHTab = function(side, tab) {
+            const prefix = side === 'left' ? 'h1' : 'h2';
+            
+            // Update button states
+            const btns = document.querySelectorAll(`.${side}-matrix .h-tab-btn`);
+            btns.forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.${side}-matrix .h-tab-btn.${tab}`).classList.add('active');
+            
+            // Show/hide control groups
+            document.getElementById(`${prefix}-linear-controls`).style.display = tab === 'linear' ? 'block' : 'none';
+            document.getElementById(`${prefix}-translation-controls`).style.display = tab === 'translation' ? 'block' : 'none';
+            document.getElementById(`${prefix}-perspective-controls`).style.display = tab === 'perspective' ? 'block' : 'none';
+        };
+        
+        window.resetHomography = function(which) {
+            const resetParams = (params, prefix) => {
+                params.rot = 0; params.scaleX = 1; params.scaleY = 1;
+                params.shearX = 0; params.shearY = 0;
+                params.tx = 0; params.ty = 0;
+                params.px = 0; params.py = 0;
+                params.h33 = 1;
+                
+                document.getElementById(`${prefix}Rot`).value = 0;
+                document.getElementById(`${prefix}ScaleX`).value = 1;
+                document.getElementById(`${prefix}ScaleY`).value = 1;
+                document.getElementById(`${prefix}ShearX`).value = 0;
+                document.getElementById(`${prefix}ShearY`).value = 0;
+                document.getElementById(`${prefix}Tx`).value = 0;
+                document.getElementById(`${prefix}Ty`).value = 0;
+                document.getElementById(`${prefix}Px`).value = 0;
+                document.getElementById(`${prefix}Py`).value = 0;
+                document.getElementById(`${prefix}H33`).value = 1;
+                
+                document.getElementById(`${prefix}RotVal`).textContent = '0°';
+                document.getElementById(`${prefix}ScaleXVal`).textContent = '1.00';
+                document.getElementById(`${prefix}ScaleYVal`).textContent = '1.00';
+                document.getElementById(`${prefix}ShearXVal`).textContent = '0.00';
+                document.getElementById(`${prefix}ShearYVal`).textContent = '0.00';
+                document.getElementById(`${prefix}TxVal`).textContent = '0';
+                document.getElementById(`${prefix}TyVal`).textContent = '0';
+                document.getElementById(`${prefix}PxVal`).textContent = '0.0000';
+                document.getElementById(`${prefix}PyVal`).textContent = '0.0000';
+                document.getElementById(`${prefix}H33Val`).textContent = '1.00';
+            };
+            
+            if (which === 'left' || which === 'both') resetParams(h1Params, 'h1');
+            if (which === 'right' || which === 'both') resetParams(h2Params, 'h2');
+        };
+        
+        // Setup modal event listeners
+        document.getElementById('openRectifyBtn').addEventListener('click', openRectifyModal);
+        document.getElementById('closeRectifyBtn').addEventListener('click', closeRectifyModal);
+        document.getElementById('rectifyModal').addEventListener('click', (e) => {
+            if (e.target.id === 'rectifyModal') closeRectifyModal();
+        });
+        
+        // Handle resize for rectify modal
+        window.addEventListener('resize', () => {
+            if (rectifyModalOpen) {
+                setTimeout(resizeRectifyCanvases, 100);
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>

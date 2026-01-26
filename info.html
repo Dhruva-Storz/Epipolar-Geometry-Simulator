@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Epipolar Geometry Explained</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #121210;
+            min-height: 100vh;
+            color: #E8E4DE;
+            line-height: 1.7;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        h1 {
+            color: #CD7F32;
+            font-size: 2.4em;
+            margin-bottom: 15px;
+        }
+        .subtitle {
+            color: #9A9689;
+            font-size: 1.1em;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #CD7F32;
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid #CD7F32;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .back-link:hover {
+            background: rgba(205, 127, 50, 0.15);
+        }
+        section {
+            background: #1E1E1C;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #3D3D3A;
+        }
+        h2 {
+            color: #CD7F32;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3D3D3A;
+        }
+        h3 {
+            color: #A89968;
+            font-size: 1.2em;
+            margin: 25px 0 15px;
+        }
+        p {
+            margin-bottom: 15px;
+            color: #B8B4A8;
+        }
+        .highlight {
+            background: linear-gradient(90deg, #2A2520 0%, #1E1E1C 100%);
+            border-left: 4px solid #CD7F32;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .highlight.yellow {
+            border-left-color: #D4A84B;
+        }
+        .highlight.green {
+            border-left-color: #A89968;
+        }
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin-bottom: 10px;
+            color: #B8B4A8;
+        }
+        .math {
+            font-family: 'Cambria Math', 'Times New Roman', serif;
+            font-style: italic;
+            background: rgba(205, 127, 50, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .diagram {
+            background: #0A0A09;
+            border: 1px solid #3D3D3A;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .diagram svg {
+            max-width: 100%;
+            height: auto;
+        }
+        .credits-list {
+            list-style: none;
+            padding: 0;
+        }
+        .credits-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #3D3D3A;
+        }
+        .credits-list li:last-child {
+            border-bottom: none;
+        }
+        .credit-name {
+            color: #CD7F32;
+            font-weight: 600;
+        }
+        .credit-role {
+            color: #9A9689;
+            font-size: 0.9em;
+        }
+        a {
+            color: #CD7F32;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #CD7F32 0%, #8B5A2B 100%);
+            color: #121210;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-decoration: none;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(205, 127, 50, 0.4);
+            text-decoration: none;
+        }
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 30px;
+            color: #6D6D68;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 15px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Simulator</a>
+        
+        <header>
+            <h1>📐 Understanding Epipolar Geometry</h1>
+            <p class="subtitle">The mathematical foundation of stereo vision and 3D reconstruction</p>
+        </header>
+
+        <section>
+            <h2>🎯 What is Epipolar Geometry?</h2>
+            <p>Epipolar geometry describes the geometric relationship between two cameras viewing the same 3D scene. It's the fundamental constraint that makes stereo vision and 3D reconstruction possible.</p>
+            
+            <div class="highlight">
+                <strong>The Key Insight:</strong> When a point P in 3D space is viewed by two cameras, the image of P in one camera constrains where P can appear in the other camera—not to a single point, but to a line called the <em>epipolar line</em>.
+            </div>
+
+            <h3>The Epipolar Constraint</h3>
+            <p>Consider a point <span class="math">P</span> in 3D space observed by two cameras. Let <span class="math">p</span> and <span class="math">p'</span> be its projections in the left and right images. The epipolar constraint states that:</p>
+            
+            <ol>
+                <li>The 3D point <span class="math">P</span>, the two camera centers <span class="math">O</span> and <span class="math">O'</span>, and the two image points <span class="math">p</span> and <span class="math">p'</span> all lie on a single plane called the <strong>epipolar plane</strong>.</li>
+                <li>The intersection of this epipolar plane with each image plane creates a line—the <strong>epipolar line</strong>.</li>
+                <li>Given a point <span class="math">p</span> in one image, its corresponding point <span class="math">p'</span> must lie on the corresponding epipolar line in the other image.</li>
+            </ol>
+
+            <h3>Key Concepts</h3>
+            <ul>
+                <li><strong>Baseline:</strong> The line connecting the two camera centers</li>
+                <li><strong>Epipole:</strong> The point where the baseline intersects each image plane (where one camera "sees" the other camera's center)</li>
+                <li><strong>Epipolar Line:</strong> The line on which a corresponding point must lie</li>
+                <li><strong>Epipolar Plane:</strong> The plane containing the baseline and a 3D point</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>🔄 Stereo Rectification</h2>
+            <p>Rectification is a transformation that simplifies stereo matching by warping both images so that corresponding epipolar lines become horizontal and aligned.</p>
+            
+            <div class="highlight green">
+                <strong>Why Rectify?</strong> After rectification, corresponding points in the left and right images lie on the same row. This reduces the 2D search problem to a 1D search along horizontal lines, dramatically simplifying and speeding up stereo matching algorithms.
+            </div>
+
+            <h3>The Rectification Process</h3>
+            <ol>
+                <li><strong>Compute the fundamental/essential matrix</strong> describing the epipolar geometry between cameras</li>
+                <li><strong>Find homography matrices</strong> <span class="math">H<sub>L</sub></span> and <span class="math">H<sub>R</sub></span> that transform each image</li>
+                <li><strong>Apply the transformations</strong> to warp both images</li>
+                <li><strong>Result:</strong> Epipolar lines become horizontal scan lines</li>
+            </ol>
+
+            <h3>Properties of Rectified Images</h3>
+            <ul>
+                <li>All epipolar lines are horizontal</li>
+                <li>Corresponding epipolar lines have the same vertical coordinate</li>
+                <li>The epipoles are at infinity (parallel epipolar lines)</li>
+                <li>Stereo matching becomes a 1D search problem</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>📊 Mathematical Foundation</h2>
+            
+            <h3>The Fundamental Matrix</h3>
+            <p>The fundamental matrix <span class="math">F</span> encodes the epipolar geometry between two uncalibrated cameras. For corresponding points <span class="math">p</span> and <span class="math">p'</span>:</p>
+            
+            <div class="highlight yellow">
+                <span class="math">p'<sup>T</sup> F p = 0</span>
+                <p style="margin-top: 10px; margin-bottom: 0;">This equation states that if <span class="math">p</span> and <span class="math">p'</span> are projections of the same 3D point, they satisfy this constraint.</p>
+            </div>
+
+            <h3>The Essential Matrix</h3>
+            <p>When cameras are calibrated (intrinsic parameters known), we use the essential matrix <span class="math">E</span> which relates normalized image coordinates. The relationship is:</p>
+            <p><span class="math">E = K'<sup>T</sup> F K</span></p>
+            <p>where <span class="math">K</span> and <span class="math">K'</span> are the camera intrinsic matrices.</p>
+
+            <h3>Epipolar Lines from the Fundamental Matrix</h3>
+            <ul>
+                <li>Given point <span class="math">p</span> in left image, the epipolar line in right image is: <span class="math">l' = Fp</span></li>
+                <li>Given point <span class="math">p'</span> in right image, the epipolar line in left image is: <span class="math">l = F<sup>T</sup>p'</span></li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>🚀 Project Motivation</h2>
+            <p>This interactive simulator was created as an educational tool to help visualize and understand the concepts of epipolar geometry, which can be abstract and difficult to grasp from equations alone.</p>
+            
+            <div class="highlight">
+                <strong>Learning by Doing:</strong> By manipulating virtual cameras in 3D space and seeing how epipolar lines change in real-time, users can develop an intuitive understanding of these geometric relationships.
+            </div>
+
+            <h3>Features of the Simulator</h3>
+            <ul>
+                <li><strong>Interactive 3D Scene:</strong> Orbit around the scene to see how two cameras view a 3D object</li>
+                <li><strong>Real-time Epipolar Lines:</strong> See how epipolar lines change as cameras move</li>
+                <li><strong>Camera Presets:</strong> Explore different stereo configurations (parallel, converging, rotated)</li>
+                <li><strong>Manual Rectification:</strong> Apply homography transformations to understand the rectification process</li>
+                <li><strong>Visual Epipolar Planes:</strong> See the 3D planes that connect camera centers and scene points</li>
+            </ul>
+
+            <p>This project is part of a series exploring camera geometry concepts, from basic pinhole cameras to advanced stereo vision techniques.</p>
+            
+            <a href="index.html" class="cta-button">🎥 Try the Simulator</a>
+        </section>
+
+        <section>
+            <h2>👏 Credits & Acknowledgments</h2>
+            <ul class="credits-list">
+                <li>
+                    <span class="credit-name">Dhruva Gowda Storz</span>
+                    <div class="credit-role">Project Creator & Developer</div>
+                </li>
+                <li>
+                    <span class="credit-name">Claude Opus 4.5 (Anthropic)</span>
+                    <div class="credit-role">AI Programming Assistant</div>
+                </li>
+                <li>
+                    <span class="credit-name">Juan (<a href="https://sketchfab.com/juane3d" target="_blank">juane3d on Sketchfab</a>)</span>
+                    <div class="credit-role">3D Thai Mask Model</div>
+                    <div style="font-size: 0.85em; color: #607d8b; margin-top: 5px;">
+                        This work uses "<a href="https://sketchfab.com/3d-models/thai-mask-79da9d12d8f94fec88ca4d158211fa37" target="_blank">Thai Mask</a>" licensed under <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank">CC-BY-4.0</a>
+                    </div>
+                </li>
+            </ul>
+            
+            <h3 style="margin-top: 30px;">Technologies Used</h3>
+            <ul>
+                <li><a href="https://threejs.org/" target="_blank">Three.js</a> - 3D graphics library</li>
+                <li>WebGL - Hardware-accelerated graphics rendering</li>
+                <li>HTML5 Canvas - 2D overlays for epipolar lines</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>📚 Further Reading</h2>
+            <ul>
+                <li>Hartley & Zisserman - "Multiple View Geometry in Computer Vision" (The definitive textbook)</li>
+                <li><a href="https://en.wikipedia.org/wiki/Epipolar_geometry" target="_blank">Wikipedia: Epipolar Geometry</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Fundamental_matrix_(computer_vision)" target="_blank">Wikipedia: Fundamental Matrix</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Image_rectification" target="_blank">Wikipedia: Image Rectification</a></li>
+            </ul>
+        </section>
+
+        <footer>
+            <p>🎥 Epipolar Geometry Simulator | Created for educational purposes</p>
+            <p style="margin-top: 10px;"><a href="index.html">Back to Simulator</a></p>
+        </footer>
+    </div>
+</body>
+</html>
