@@ -96,14 +96,14 @@
             pointer-events: none;
         }
         .camera-view.left h3 {
-            background: rgba(90, 138, 138, 0.25);
-            color: #5A8A8A;
-            border: 1px solid #5A8A8A;
+            background: rgba(79, 195, 247, 0.25);
+            color: #4FC3F7;
+            border: 1px solid #4FC3F7;
         }
         .camera-view.right h3 {
-            background: rgba(198, 120, 100, 0.25);
-            color: #C67864;
-            border: 1px solid #C67864;
+            background: rgba(255, 107, 107, 0.25);
+            color: #FF6B6B;
+            border: 1px solid #FF6B6B;
         }
         .view-wrapper {
             position: relative;
@@ -147,8 +147,8 @@
             align-items: center;
             gap: 6px;
         }
-        .control-section.left-cam h3 { color: #5A8A8A; }
-        .control-section.right-cam h3 { color: #C67864; }
+        .control-section.left-cam h3 { color: #4FC3F7; }
+        .control-section.right-cam h3 { color: #FF6B6B; }
         .control-section.scene h3 { color: #D4A84B; }
         .control-group {
             margin-bottom: 6px;
@@ -182,12 +182,12 @@
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background: #5A8A8A;
+            background: #4FC3F7;
             cursor: pointer;
             border: 2px solid #2A2A28;
         }
         .right-cam input[type="range"]::-webkit-slider-thumb {
-            background: #C67864;
+            background: #FF6B6B;
         }
         .scene input[type="range"]::-webkit-slider-thumb {
             background: #D4A84B;
@@ -401,14 +401,14 @@
             color: #9A9689;
         }
         .rectify-view.left h4 {
-            background: rgba(90, 138, 138, 0.25);
-            color: #5A8A8A;
-            border: 1px solid #5A8A8A;
+            background: rgba(79, 195, 247, 0.25);
+            color: #4FC3F7;
+            border: 1px solid #4FC3F7;
         }
         .rectify-view.right h4 {
-            background: rgba(198, 120, 100, 0.25);
-            color: #C67864;
-            border: 1px solid #C67864;
+            background: rgba(255, 107, 107, 0.25);
+            color: #FF6B6B;
+            border: 1px solid #FF6B6B;
         }
         .rectify-view .view-wrapper {
             padding-bottom: 66.67%; /* 3:2 aspect ratio */
@@ -437,8 +437,8 @@
             align-items: center;
             gap: 6px;
         }
-        .matrix-section.left-matrix h3 { color: #5A8A8A; }
-        .matrix-section.right-matrix h3 { color: #C67864; }
+        .matrix-section.left-matrix h3 { color: #4FC3F7; }
+        .matrix-section.right-matrix h3 { color: #FF6B6B; }
         
         .matrix-grid {
             display: grid;
@@ -520,6 +520,7 @@
         .h-tab-btn.linear { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
         .h-tab-btn.translation { background: rgba(78, 205, 196, 0.2); color: #4ecdc4; border: 1px solid #4ecdc4; }
         .h-tab-btn.perspective { background: rgba(255, 230, 109, 0.2); color: #ffe66d; border: 1px solid #ffe66d; }
+        .h-tab-btn.rotation3d { background: rgba(186, 104, 200, 0.2); color: #ba68c8; border: 1px solid #ba68c8; }
         .h-tab-btn.active { box-shadow: 0 0 10px currentColor; }
         
         .h-reset-btn {
@@ -861,6 +862,7 @@
                         <div class="matrix-legend-item"><div class="matrix-legend-dot" style="background: #4ecdc4;"></div>Translation</div>
                         <div class="matrix-legend-item"><div class="matrix-legend-dot" style="background: #ffe66d;"></div>Perspective</div>
                         <div class="matrix-legend-item"><div class="matrix-legend-dot" style="background: #81c784;"></div>Global scale</div>
+                        <div class="matrix-legend-item"><div class="matrix-legend-dot" style="background: #ba68c8;"></div>3D Rotation (yaw, pitch)</div>
                     </div>
                     
                     <!-- Left Homography H1 -->
@@ -882,52 +884,63 @@
                             <button class="h-tab-btn linear active" onclick="setHTab('left', 'linear')">Linear</button>
                             <button class="h-tab-btn translation" onclick="setHTab('left', 'translation')">Translate</button>
                             <button class="h-tab-btn perspective" onclick="setHTab('left', 'perspective')">Persp</button>
+                            <button class="h-tab-btn rotation3d" onclick="setHTab('left', 'rotation3d')">3D Rot</button>
                         </div>
                         
                         <div id="h1-linear-controls">
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Rotation θ</span><span class="h-control-value" id="h1RotVal">0°</span></div>
-                                <input type="range" id="h1Rot" min="-30" max="30" value="0" step="0.5">
+                                <input type="range" id="h1Rot" min="-90" max="90" value="0" step="0.5">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Scale X</span><span class="h-control-value" id="h1ScaleXVal">1.00</span></div>
-                                <input type="range" id="h1ScaleX" min="0.7" max="1.3" value="1" step="0.01">
+                                <input type="range" id="h1ScaleX" min="0" max="2" value="1" step="0.01">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Scale Y</span><span class="h-control-value" id="h1ScaleYVal">1.00</span></div>
-                                <input type="range" id="h1ScaleY" min="0.7" max="1.3" value="1" step="0.01">
+                                <input type="range" id="h1ScaleY" min="0" max="2" value="1" step="0.01">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Shear X</span><span class="h-control-value" id="h1ShearXVal">0.00</span></div>
-                                <input type="range" id="h1ShearX" min="-0.3" max="0.3" value="0" step="0.01">
+                                <input type="range" id="h1ShearX" min="-1" max="1" value="0" step="0.01">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Shear Y</span><span class="h-control-value" id="h1ShearYVal">0.00</span></div>
-                                <input type="range" id="h1ShearY" min="-0.3" max="0.3" value="0" step="0.01">
+                                <input type="range" id="h1ShearY" min="-1" max="1" value="0" step="0.01">
                             </div>
                         </div>
                         <div id="h1-translation-controls" style="display: none;">
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Translate X</span><span class="h-control-value" id="h1TxVal">0</span></div>
-                                <input type="range" id="h1Tx" min="-100" max="100" value="0" step="1">
+                                <input type="range" id="h1Tx" min="-300" max="300" value="0" step="1">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Translate Y</span><span class="h-control-value" id="h1TyVal">0</span></div>
-                                <input type="range" id="h1Ty" min="-100" max="100" value="0" step="1">
+                                <input type="range" id="h1Ty" min="-200" max="200" value="0" step="1">
                             </div>
                         </div>
                         <div id="h1-perspective-controls" style="display: none;">
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Perspective X (h₃₁)</span><span class="h-control-value" id="h1PxVal">0.0000</span></div>
-                                <input type="range" id="h1Px" min="-0.005" max="0.005" value="0" step="0.0001">
+                                <input type="range" id="h1Px" min="-0.01" max="0.01" value="0" step="0.0001">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Perspective Y (h₃₂)</span><span class="h-control-value" id="h1PyVal">0.0000</span></div>
-                                <input type="range" id="h1Py" min="-0.005" max="0.005" value="0" step="0.0001">
+                                <input type="range" id="h1Py" min="-0.01" max="0.01" value="0" step="0.0001">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Global Scale (h₃₃)</span><span class="h-control-value" id="h1H33Val">1.00</span></div>
                                 <input type="range" id="h1H33" min="0.5" max="2.0" value="1" step="0.01">
+                            </div>
+                        </div>
+                        <div id="h1-rotation3d-controls" style="display: none;">
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Yaw (°)</span><span class="h-control-value" id="h1YawVal">0°</span></div>
+                                <input type="range" id="h1Yaw" min="-90" max="90" value="0" step="0.5">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Pitch (°)</span><span class="h-control-value" id="h1PitchVal">0°</span></div>
+                                <input type="range" id="h1Pitch" min="-90" max="90" value="0" step="0.5">
                             </div>
                         </div>
                         <button class="h-reset-btn" onclick="resetHomography('left')">Reset H₁</button>
@@ -952,52 +965,63 @@
                             <button class="h-tab-btn linear active" onclick="setHTab('right', 'linear')">Linear</button>
                             <button class="h-tab-btn translation" onclick="setHTab('right', 'translation')">Translate</button>
                             <button class="h-tab-btn perspective" onclick="setHTab('right', 'perspective')">Persp</button>
+                            <button class="h-tab-btn rotation3d" onclick="setHTab('right', 'rotation3d')">3D Rot</button>
                         </div>
                         
                         <div id="h2-linear-controls">
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Rotation θ</span><span class="h-control-value" id="h2RotVal">0°</span></div>
-                                <input type="range" id="h2Rot" min="-30" max="30" value="0" step="0.5">
+                                <input type="range" id="h2Rot" min="-90" max="90" value="0" step="0.5">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Scale X</span><span class="h-control-value" id="h2ScaleXVal">1.00</span></div>
-                                <input type="range" id="h2ScaleX" min="0.7" max="1.3" value="1" step="0.01">
+                                <input type="range" id="h2ScaleX" min="0" max="2" value="1" step="0.01">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Scale Y</span><span class="h-control-value" id="h2ScaleYVal">1.00</span></div>
-                                <input type="range" id="h2ScaleY" min="0.7" max="1.3" value="1" step="0.01">
+                                <input type="range" id="h2ScaleY" min="0" max="2" value="1" step="0.01">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Shear X</span><span class="h-control-value" id="h2ShearXVal">0.00</span></div>
-                                <input type="range" id="h2ShearX" min="-0.3" max="0.3" value="0" step="0.01">
+                                <input type="range" id="h2ShearX" min="-1" max="1" value="0" step="0.01">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Shear Y</span><span class="h-control-value" id="h2ShearYVal">0.00</span></div>
-                                <input type="range" id="h2ShearY" min="-0.3" max="0.3" value="0" step="0.01">
+                                <input type="range" id="h2ShearY" min="-1" max="1" value="0" step="0.01">
                             </div>
                         </div>
                         <div id="h2-translation-controls" style="display: none;">
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Translate X</span><span class="h-control-value" id="h2TxVal">0</span></div>
-                                <input type="range" id="h2Tx" min="-100" max="100" value="0" step="1">
+                                <input type="range" id="h2Tx" min="-300" max="300" value="0" step="1">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Translate Y</span><span class="h-control-value" id="h2TyVal">0</span></div>
-                                <input type="range" id="h2Ty" min="-100" max="100" value="0" step="1">
+                                <input type="range" id="h2Ty" min="-200" max="200" value="0" step="1">
                             </div>
                         </div>
                         <div id="h2-perspective-controls" style="display: none;">
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Perspective X (h₃₁)</span><span class="h-control-value" id="h2PxVal">0.0000</span></div>
-                                <input type="range" id="h2Px" min="-0.005" max="0.005" value="0" step="0.0001">
+                                <input type="range" id="h2Px" min="-0.01" max="0.01" value="0" step="0.0001">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Perspective Y (h₃₂)</span><span class="h-control-value" id="h2PyVal">0.0000</span></div>
-                                <input type="range" id="h2Py" min="-0.005" max="0.005" value="0" step="0.0001">
+                                <input type="range" id="h2Py" min="-0.01" max="0.01" value="0" step="0.0001">
                             </div>
                             <div class="h-control-group">
                                 <div class="h-control-label"><span>Global Scale (h₃₃)</span><span class="h-control-value" id="h2H33Val">1.00</span></div>
                                 <input type="range" id="h2H33" min="0.5" max="2.0" value="1" step="0.01">
+                            </div>
+                        </div>
+                        <div id="h2-rotation3d-controls" style="display: none;">
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Yaw (°)</span><span class="h-control-value" id="h2YawVal">0°</span></div>
+                                <input type="range" id="h2Yaw" min="-90" max="90" value="0" step="0.5">
+                            </div>
+                            <div class="h-control-group">
+                                <div class="h-control-label"><span>Pitch (°)</span><span class="h-control-value" id="h2PitchVal">0°</span></div>
+                                <input type="range" id="h2Pitch" min="-90" max="90" value="0" step="0.5">
                             </div>
                         </div>
                         <button class="h-reset-btn" onclick="resetHomography('right')">Reset H₂</button>
@@ -1026,9 +1050,9 @@
         // ============================================
         // CONFIGURATION & CONSTANTS
         // ============================================
-        // Warm heritage palette with good differentiation: amber, teal, coral, sage, dusty rose, ochre, slate
-        const POINT_COLORS = [0xD4A84B, 0x5A8A8A, 0xC67864, 0x8B9A6B, 0xB08B8B, 0xC4956A, 0x7A8A8A];
-        const POINT_COLORS_HEX = ['#D4A84B', '#5A8A8A', '#C67864', '#8B9A6B', '#B08B8B', '#C4956A', '#7A8A8A'];
+        // Vibrant palette with good differentiation: gold, cyan, coral-red, lime, pink, orange, purple
+        const POINT_COLORS = [0xFFD54F, 0x4FC3F7, 0xFF6B6B, 0x81C784, 0xF48FB1, 0xFFB74D, 0xB39DDB];
+        const POINT_COLORS_HEX = ['#FFD54F', '#4FC3F7', '#FF6B6B', '#81C784', '#F48FB1', '#FFB74D', '#B39DDB'];
         
         const PRESETS = {
             ideal: {
@@ -1568,21 +1592,21 @@
 
         function createCameraHelpers() {
             const camBodyGeo = new THREE.BoxGeometry(20, 15, 25);
-            const leftCamMat = new THREE.MeshPhongMaterial({ color: 0x5A8A8A });
+            const leftCamMat = new THREE.MeshPhongMaterial({ color: 0x4FC3F7 });
             leftCamMesh = new THREE.Mesh(camBodyGeo, leftCamMat);
             sharedScene.add(leftCamMesh);
             
             const lensGeo = new THREE.CylinderGeometry(6, 8, 15, 16);
-            const lensMesh1 = new THREE.Mesh(lensGeo, new THREE.MeshPhongMaterial({ color: 0x3A5A5A }));
+            const lensMesh1 = new THREE.Mesh(lensGeo, new THREE.MeshPhongMaterial({ color: 0x29B6F6 }));
             lensMesh1.rotation.x = Math.PI / 2;
             lensMesh1.position.z = 18;
             leftCamMesh.add(lensMesh1);
             
-            const rightCamMat = new THREE.MeshPhongMaterial({ color: 0xC67864 });
+            const rightCamMat = new THREE.MeshPhongMaterial({ color: 0xFF6B6B });
             rightCamMesh = new THREE.Mesh(camBodyGeo.clone(), rightCamMat);
             sharedScene.add(rightCamMesh);
             
-            const lensMesh2 = new THREE.Mesh(lensGeo.clone(), new THREE.MeshPhongMaterial({ color: 0x8A5044 }));
+            const lensMesh2 = new THREE.Mesh(lensGeo.clone(), new THREE.MeshPhongMaterial({ color: 0xEF5350 }));
             lensMesh2.rotation.x = Math.PI / 2;
             lensMesh2.position.z = 18;
             rightCamMesh.add(lensMesh2);
@@ -2119,8 +2143,8 @@
         let rightSnapshot = null;
         
         // Homography parameters for left and right
-        const h1Params = { rot: 0, scaleX: 1, scaleY: 1, shearX: 0, shearY: 0, tx: 0, ty: 0, px: 0, py: 0, h33: 1 };
-        const h2Params = { rot: 0, scaleX: 1, scaleY: 1, shearX: 0, shearY: 0, tx: 0, ty: 0, px: 0, py: 0, h33: 1 };
+        const h1Params = { rot: 0, scaleX: 1, scaleY: 1, shearX: 0, shearY: 0, tx: 0, ty: 0, px: 0, py: 0, h33: 1, yaw3d: 0, pitch3d: 0 };
+        const h2Params = { rot: 0, scaleX: 1, scaleY: 1, shearX: 0, shearY: 0, tx: 0, ty: 0, px: 0, py: 0, h33: 1, yaw3d: 0, pitch3d: 0 };
         
         function captureSnapshots() {
             // Hide helpers for clean snapshots
@@ -2227,10 +2251,58 @@
                 [RS[1][0]*Sh[0][0] + RS[1][1]*Sh[1][0], RS[1][0]*Sh[0][1] + RS[1][1]*Sh[1][1]]
             ];
             
-            return [
+            // Build standard homography
+            const Hstd = [
                 [RSSh[0][0], RSSh[0][1], params.tx],
                 [RSSh[1][0], RSSh[1][1], params.ty],
                 [params.px, params.py, params.h33]
+            ];
+            
+            // Build 3D rotation homography if yaw or pitch is non-zero
+            const yaw = params.yaw3d * Math.PI / 180;
+            const pitch = params.pitch3d * Math.PI / 180;
+            // Use a fixed focal length in pixels - approximately half the typical canvas width
+            // This gives natural-looking perspective for the 3D rotation effect
+            const fPixels = 300;
+            
+            if (Math.abs(yaw) > 0.0001 || Math.abs(pitch) > 0.0001) {
+                const cosYaw = Math.cos(yaw);
+                const sinYaw = Math.sin(yaw);
+                const cosPitch = Math.cos(pitch);
+                const sinPitch = Math.sin(pitch);
+                
+                // 3D rotation homography: scales x by cos(yaw), y by cos(pitch)
+                // and adds perspective based on sin/focal
+                const H3d = [
+                    [cosYaw,        0,              0],
+                    [0,             cosPitch,       0],
+                    [-sinYaw/fPixels, -sinPitch/fPixels, 1]
+                ];
+                
+                // Multiply Hstd * H3d
+                return multiplyMatrices(Hstd, H3d);
+            }
+            
+            return Hstd;
+        }
+        
+        function multiplyMatrices(A, B) {
+            return [
+                [
+                    A[0][0]*B[0][0] + A[0][1]*B[1][0] + A[0][2]*B[2][0],
+                    A[0][0]*B[0][1] + A[0][1]*B[1][1] + A[0][2]*B[2][1],
+                    A[0][0]*B[0][2] + A[0][1]*B[1][2] + A[0][2]*B[2][2]
+                ],
+                [
+                    A[1][0]*B[0][0] + A[1][1]*B[1][0] + A[1][2]*B[2][0],
+                    A[1][0]*B[0][1] + A[1][1]*B[1][1] + A[1][2]*B[2][1],
+                    A[1][0]*B[0][2] + A[1][1]*B[1][2] + A[1][2]*B[2][2]
+                ],
+                [
+                    A[2][0]*B[0][0] + A[2][1]*B[1][0] + A[2][2]*B[2][0],
+                    A[2][0]*B[0][1] + A[2][1]*B[1][1] + A[2][2]*B[2][1],
+                    A[2][0]*B[0][2] + A[2][1]*B[1][2] + A[2][2]*B[2][2]
+                ]
             ];
         }
         
@@ -2628,7 +2700,7 @@
         
         function setupHomographyControls() {
             // H1 controls
-            const h1Controls = ['h1Rot', 'h1ScaleX', 'h1ScaleY', 'h1ShearX', 'h1ShearY', 'h1Tx', 'h1Ty', 'h1Px', 'h1Py', 'h1H33'];
+            const h1Controls = ['h1Rot', 'h1ScaleX', 'h1ScaleY', 'h1ShearX', 'h1ShearY', 'h1Tx', 'h1Ty', 'h1Px', 'h1Py', 'h1H33', 'h1Yaw', 'h1Pitch'];
             h1Controls.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -2643,6 +2715,8 @@
                         h1Params.px = parseFloat(document.getElementById('h1Px').value);
                         h1Params.py = parseFloat(document.getElementById('h1Py').value);
                         h1Params.h33 = parseFloat(document.getElementById('h1H33').value);
+                        h1Params.yaw3d = parseFloat(document.getElementById('h1Yaw').value);
+                        h1Params.pitch3d = parseFloat(document.getElementById('h1Pitch').value);
                         
                         document.getElementById('h1RotVal').textContent = h1Params.rot + '°';
                         document.getElementById('h1ScaleXVal').textContent = h1Params.scaleX.toFixed(2);
@@ -2654,12 +2728,14 @@
                         document.getElementById('h1PxVal').textContent = h1Params.px.toFixed(4);
                         document.getElementById('h1PyVal').textContent = h1Params.py.toFixed(4);
                         document.getElementById('h1H33Val').textContent = h1Params.h33.toFixed(2);
+                        document.getElementById('h1YawVal').textContent = h1Params.yaw3d + '°';
+                        document.getElementById('h1PitchVal').textContent = h1Params.pitch3d + '°';
                     });
                 }
             });
             
             // H2 controls
-            const h2Controls = ['h2Rot', 'h2ScaleX', 'h2ScaleY', 'h2ShearX', 'h2ShearY', 'h2Tx', 'h2Ty', 'h2Px', 'h2Py', 'h2H33'];
+            const h2Controls = ['h2Rot', 'h2ScaleX', 'h2ScaleY', 'h2ShearX', 'h2ShearY', 'h2Tx', 'h2Ty', 'h2Px', 'h2Py', 'h2H33', 'h2Yaw', 'h2Pitch'];
             h2Controls.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -2674,6 +2750,8 @@
                         h2Params.px = parseFloat(document.getElementById('h2Px').value);
                         h2Params.py = parseFloat(document.getElementById('h2Py').value);
                         h2Params.h33 = parseFloat(document.getElementById('h2H33').value);
+                        h2Params.yaw3d = parseFloat(document.getElementById('h2Yaw').value);
+                        h2Params.pitch3d = parseFloat(document.getElementById('h2Pitch').value);
                         
                         document.getElementById('h2RotVal').textContent = h2Params.rot + '°';
                         document.getElementById('h2ScaleXVal').textContent = h2Params.scaleX.toFixed(2);
@@ -2685,6 +2763,8 @@
                         document.getElementById('h2PxVal').textContent = h2Params.px.toFixed(4);
                         document.getElementById('h2PyVal').textContent = h2Params.py.toFixed(4);
                         document.getElementById('h2H33Val').textContent = h2Params.h33.toFixed(2);
+                        document.getElementById('h2YawVal').textContent = h2Params.yaw3d + '°';
+                        document.getElementById('h2PitchVal').textContent = h2Params.pitch3d + '°';
                     });
                 }
             });
@@ -2703,6 +2783,7 @@
             document.getElementById(`${prefix}-linear-controls`).style.display = tab === 'linear' ? 'block' : 'none';
             document.getElementById(`${prefix}-translation-controls`).style.display = tab === 'translation' ? 'block' : 'none';
             document.getElementById(`${prefix}-perspective-controls`).style.display = tab === 'perspective' ? 'block' : 'none';
+            document.getElementById(`${prefix}-rotation3d-controls`).style.display = tab === 'rotation3d' ? 'block' : 'none';
         };
         
         window.resetHomography = function(which) {
@@ -2712,6 +2793,7 @@
                 params.tx = 0; params.ty = 0;
                 params.px = 0; params.py = 0;
                 params.h33 = 1;
+                params.yaw3d = 0; params.pitch3d = 0;
                 
                 document.getElementById(`${prefix}Rot`).value = 0;
                 document.getElementById(`${prefix}ScaleX`).value = 1;
@@ -2723,6 +2805,8 @@
                 document.getElementById(`${prefix}Px`).value = 0;
                 document.getElementById(`${prefix}Py`).value = 0;
                 document.getElementById(`${prefix}H33`).value = 1;
+                document.getElementById(`${prefix}Yaw`).value = 0;
+                document.getElementById(`${prefix}Pitch`).value = 0;
                 
                 document.getElementById(`${prefix}RotVal`).textContent = '0°';
                 document.getElementById(`${prefix}ScaleXVal`).textContent = '1.00';
@@ -2734,6 +2818,8 @@
                 document.getElementById(`${prefix}PxVal`).textContent = '0.0000';
                 document.getElementById(`${prefix}PyVal`).textContent = '0.0000';
                 document.getElementById(`${prefix}H33Val`).textContent = '1.00';
+                document.getElementById(`${prefix}YawVal`).textContent = '0°';
+                document.getElementById(`${prefix}PitchVal`).textContent = '0°';
             };
             
             if (which === 'left' || which === 'both') resetParams(h1Params, 'h1');

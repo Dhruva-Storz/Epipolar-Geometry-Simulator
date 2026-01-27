@@ -260,6 +260,196 @@
         </section>
 
         <section>
+            <h2>🔢 The Homography Matrix</h2>
+            <p>A homography (or projective transformation) is a 3×3 matrix <span class="math">H</span> that maps points from one plane to another. It's the most general linear transformation that preserves straight lines, making it fundamental for image rectification, panorama stitching, and perspective correction.</p>
+            
+            <div class="highlight">
+                <strong>The Transformation:</strong> A point <span class="math">(x, y)</span> is transformed to <span class="math">(x', y')</span> using homogeneous coordinates:
+                <div style="margin-top: 10px; font-family: 'Consolas', monospace; font-size: 0.95em;">
+                    [x', y', w']<sup>T</sup> = H · [x, y, 1]<sup>T</sup><br>
+                    Then: x<sub>out</sub> = x'/w', y<sub>out</sub> = y'/w'
+                </div>
+            </div>
+
+            <h3>Matrix Structure & Color Coding</h3>
+            <p>The 3×3 homography matrix can be decomposed into regions that control different aspects of the transformation:</p>
+            
+            <div class="diagram">
+                <svg viewBox="0 0 450 180" style="max-width: 450px;">
+                    <!-- Labels on LEFT side -->
+                    <text x="5" y="55" font-size="11" fill="#ff6b6b" text-anchor="start">Linear →</text>
+                    <text x="5" y="70" font-size="9" fill="#9A9689" text-anchor="start">(scale, rotate, shear)</text>
+                    <text x="5" y="145" font-size="11" fill="#ffe66d" text-anchor="start">Perspective →</text>
+                    
+                    <!-- Left bracket -->
+                    <g transform="translate(95, 15)">
+                        <path d="M 10 0 L 0 0 L 0 150 L 10 150" stroke="#E8E4DE" stroke-width="3" fill="none"/>
+                    </g>
+                    
+                    <!-- Linear region (2x2 top-left) - Red -->
+                    <rect x="115" y="20" width="55" height="45" rx="4" fill="rgba(255, 107, 107, 0.3)" stroke="#ff6b6b" stroke-width="2"/>
+                    <text x="142" y="50" font-size="16" fill="#ff6b6b" text-anchor="middle" font-family="monospace">h₁₁</text>
+                    
+                    <rect x="180" y="20" width="55" height="45" rx="4" fill="rgba(255, 107, 107, 0.3)" stroke="#ff6b6b" stroke-width="2"/>
+                    <text x="207" y="50" font-size="16" fill="#ff6b6b" text-anchor="middle" font-family="monospace">h₁₂</text>
+                    
+                    <rect x="115" y="75" width="55" height="45" rx="4" fill="rgba(255, 107, 107, 0.3)" stroke="#ff6b6b" stroke-width="2"/>
+                    <text x="142" y="105" font-size="16" fill="#ff6b6b" text-anchor="middle" font-family="monospace">h₂₁</text>
+                    
+                    <rect x="180" y="75" width="55" height="45" rx="4" fill="rgba(255, 107, 107, 0.3)" stroke="#ff6b6b" stroke-width="2"/>
+                    <text x="207" y="105" font-size="16" fill="#ff6b6b" text-anchor="middle" font-family="monospace">h₂₂</text>
+                    
+                    <!-- Translation region (2x1 top-right) - Cyan -->
+                    <rect x="245" y="20" width="55" height="45" rx="4" fill="rgba(78, 205, 196, 0.3)" stroke="#4ecdc4" stroke-width="2"/>
+                    <text x="272" y="50" font-size="16" fill="#4ecdc4" text-anchor="middle" font-family="monospace">h₁₃</text>
+                    
+                    <rect x="245" y="75" width="55" height="45" rx="4" fill="rgba(78, 205, 196, 0.3)" stroke="#4ecdc4" stroke-width="2"/>
+                    <text x="272" y="105" font-size="16" fill="#4ecdc4" text-anchor="middle" font-family="monospace">h₂₃</text>
+                    
+                    <!-- Perspective region (1x2 bottom-left) - Yellow -->
+                    <rect x="115" y="130" width="55" height="45" rx="4" fill="rgba(255, 230, 109, 0.3)" stroke="#ffe66d" stroke-width="2"/>
+                    <text x="142" y="160" font-size="16" fill="#ffe66d" text-anchor="middle" font-family="monospace">h₃₁</text>
+                    
+                    <rect x="180" y="130" width="55" height="45" rx="4" fill="rgba(255, 230, 109, 0.3)" stroke="#ffe66d" stroke-width="2"/>
+                    <text x="207" y="160" font-size="16" fill="#ffe66d" text-anchor="middle" font-family="monospace">h₃₂</text>
+                    
+                    <!-- Scale region (1x1 bottom-right) - Green -->
+                    <rect x="245" y="130" width="55" height="45" rx="4" fill="rgba(129, 199, 132, 0.3)" stroke="#81c784" stroke-width="2"/>
+                    <text x="272" y="160" font-size="16" fill="#81c784" text-anchor="middle" font-family="monospace">h₃₃</text>
+                    
+                    <!-- Right bracket -->
+                    <g transform="translate(310, 15)">
+                        <path d="M 0 0 L 10 0 L 10 150 L 0 150" stroke="#E8E4DE" stroke-width="3" fill="none"/>
+                    </g>
+                    
+                    <!-- Labels on RIGHT side -->
+                    <text x="335" y="70" font-size="11" fill="#4ecdc4" text-anchor="start">← Translation</text>
+                    <text x="335" y="160" font-size="11" fill="#81c784" text-anchor="start">← Global Scale</text>
+                </svg>
+            </div>
+
+            <h3>Basic Transform Parameters</h3>
+            
+            <h4 style="color: #ff6b6b; margin-top: 20px;">Linear Transforms (h₁₁, h₁₂, h₂₁, h₂₂)</h4>
+            <p>The 2×2 upper-left submatrix controls linear transformations that preserve the origin:</p>
+            <ul>
+                <li><strong>Scale X & Y:</strong> Diagonal elements <span class="math">h₁₁</span> and <span class="math">h₂₂</span> control horizontal and vertical scaling. Values &gt;1 enlarge, &lt;1 shrink.</li>
+                <li><strong>Shear X:</strong> Element <span class="math">h₁₂</span> skews the image horizontally (slants vertical lines)</li>
+                <li><strong>Shear Y:</strong> Element <span class="math">h₂₁</span> skews the image vertically (slants horizontal lines)</li>
+            </ul>
+
+            <h4 style="color: #4ecdc4; margin-top: 20px;">Translation (h₁₃, h₂₃)</h4>
+            <p>The rightmost column (excluding h₃₃) controls translation:</p>
+            <ul>
+                <li><strong>Translate X:</strong> Element <span class="math">h₁₃</span> shifts the image horizontally</li>
+                <li><strong>Translate Y:</strong> Element <span class="math">h₂₃</span> shifts the image vertically</li>
+            </ul>
+
+            <h4 style="color: #ffe66d; margin-top: 20px;">Perspective (h₃₁, h₃₂)</h4>
+            <p>The bottom row elements create perspective (projective) effects—transformations that make parallel lines converge:</p>
+            <ul>
+                <li><strong>Perspective X:</strong> Element <span class="math">h₃₁</span> creates horizontal vanishing point effects</li>
+                <li><strong>Perspective Y:</strong> Element <span class="math">h₃₂</span> creates vertical vanishing point effects</li>
+            </ul>
+            <p>These parameters cause the divisor <span class="math">w' = h₃₁·x + h₃₂·y + h₃₃</span> to vary across the image, creating the characteristic perspective "foreshortening" effect.</p>
+
+            <h4 style="color: #81c784; margin-top: 20px;">Global Scale (h₃₃)</h4>
+            <p>Element <span class="math">h₃₃</span> acts as a normalizing factor. Since homographies are defined up to scale, this is typically set to 1. Changing it uniformly scales all other parameters.</p>
+        </section>
+
+        <section>
+            <h2>🔄 Composite Transformations</h2>
+            <p>While individual parameters offer basic control, powerful transformations emerge from combining them using trigonometric relationships.</p>
+
+            <h3 style="color: #ff6b6b;">2D Rotation</h3>
+            <p>Pure rotation by angle <span class="math">θ</span> requires a specific relationship between the linear elements:</p>
+            
+            <div class="diagram">
+                <svg viewBox="0 0 300 110" style="max-width: 300px;">
+                    <!-- Left bracket -->
+                    <g transform="translate(40, 10)">
+                        <path d="M 10 0 L 0 0 L 0 90 L 10 90" stroke="#E8E4DE" stroke-width="3" fill="none"/>
+                    </g>
+                    
+                    <text x="70" y="35" font-size="14" fill="#ff6b6b" font-family="monospace">cos θ</text>
+                    <text x="130" y="35" font-size="14" fill="#ff6b6b" font-family="monospace">−sin θ</text>
+                    <text x="205" y="35" font-size="14" fill="#4ecdc4" font-family="monospace">0</text>
+                    
+                    <text x="70" y="60" font-size="14" fill="#ff6b6b" font-family="monospace">sin θ</text>
+                    <text x="135" y="60" font-size="14" fill="#ff6b6b" font-family="monospace">cos θ</text>
+                    <text x="205" y="60" font-size="14" fill="#4ecdc4" font-family="monospace">0</text>
+                    
+                    <text x="85" y="85" font-size="14" fill="#ffe66d" font-family="monospace">0</text>
+                    <text x="150" y="85" font-size="14" fill="#ffe66d" font-family="monospace">0</text>
+                    <text x="205" y="85" font-size="14" fill="#81c784" font-family="monospace">1</text>
+                    
+                    <!-- Right bracket -->
+                    <g transform="translate(230, 10)">
+                        <path d="M 0 0 L 10 0 L 10 90 L 0 90" stroke="#E8E4DE" stroke-width="3" fill="none"/>
+                    </g>
+                </svg>
+            </div>
+            
+            <p>The cosine and sine functions ensure the transformation preserves distances and angles (it's an isometry). The constraint <span class="math">h₁₁ = h₂₂ = cos θ</span> and <span class="math">h₂₁ = −h₁₂ = sin θ</span> creates a pure rotation around the origin.</p>
+
+            <h3 style="color: #ba68c8; margin-top: 30px;">3D Rotation (Perspective Rotation)</h3>
+            <p>A powerful technique for simulating 3D rotation of a planar surface combines <strong>scaling</strong> and <strong>perspective</strong> in a coordinated way. This is useful for correcting images taken at an angle to the subject.</p>
+            
+            <div class="highlight" style="border-left-color: #ba68c8;">
+                <strong>The Key Insight:</strong> When you rotate a plane in 3D, two things happen simultaneously:
+                <ol style="margin-top: 10px;">
+                    <li>The dimension along the rotation axis <strong>compresses</strong> (foreshortening)</li>
+                    <li>A <strong>perspective gradient</strong> appears (far edge appears smaller than near edge)</li>
+                </ol>
+            </div>
+
+            <p>For <strong>Yaw</strong> (rotation around vertical axis) and <strong>Pitch</strong> (rotation around horizontal axis), the 3D rotation homography is:</p>
+
+            <div class="diagram">
+                <svg viewBox="0 0 340 110" style="max-width: 340px;">
+                    <!-- Left bracket -->
+                    <g transform="translate(25, 10)">
+                        <path d="M 10 0 L 0 0 L 0 90 L 10 90" stroke="#E8E4DE" stroke-width="3" fill="none"/>
+                    </g>
+                    
+                    <text x="50" y="35" font-size="13" fill="#ba68c8" font-family="monospace">cos(yaw)</text>
+                    <text x="145" y="35" font-size="13" fill="#9A9689" font-family="monospace">0</text>
+                    <text x="235" y="35" font-size="13" fill="#9A9689" font-family="monospace">0</text>
+                    
+                    <text x="65" y="60" font-size="13" fill="#9A9689" font-family="monospace">0</text>
+                    <text x="125" y="60" font-size="13" fill="#ba68c8" font-family="monospace">cos(pitch)</text>
+                    <text x="235" y="60" font-size="13" fill="#9A9689" font-family="monospace">0</text>
+                    
+                    <text x="40" y="85" font-size="12" fill="#ba68c8" font-family="monospace">−sin(yaw)/f</text>
+                    <text x="130" y="85" font-size="12" fill="#ba68c8" font-family="monospace">−sin(pitch)/f</text>
+                    <text x="235" y="85" font-size="13" fill="#9A9689" font-family="monospace">1</text>
+                    
+                    <!-- Right bracket -->
+                    <g transform="translate(270, 10)">
+                        <path d="M 0 0 L 10 0 L 10 90 L 0 90" stroke="#E8E4DE" stroke-width="3" fill="none"/>
+                    </g>
+                </svg>
+            </div>
+
+            <p>Where <span class="math">f</span> is the focal length (in pixels). This matrix elegantly combines:</p>
+            <ul>
+                <li><strong>cos(yaw) scaling on X:</strong> Compresses horizontally as the surface rotates away—this <em>corrects for the distortion</em> that pure perspective would introduce</li>
+                <li><strong>cos(pitch) scaling on Y:</strong> Compresses vertically for pitch rotation</li>
+                <li><strong>−sin(yaw)/f perspective:</strong> Adds the horizontal vanishing point effect</li>
+                <li><strong>−sin(pitch)/f perspective:</strong> Adds the vertical vanishing point effect</li>
+            </ul>
+
+            <div class="highlight green">
+                <strong>Why the scaling matters:</strong> If you only applied perspective without the cosine scaling, the image would appear stretched on one side. The <span class="math">cos(angle)</span> scaling precisely compensates for this, ensuring the transformation looks like a natural 3D rotation rather than a distorted stretch.
+            </div>
+
+            <h3>Combining Transformations</h3>
+            <p>Multiple homographies can be composed by matrix multiplication. To apply transformation <span class="math">H₁</span> followed by <span class="math">H₂</span>:</p>
+            <p style="text-align: center;"><span class="math">H<sub>combined</sub> = H₂ · H₁</span></p>
+            <p>This allows building complex transformations from simpler components—for example, rotating around an arbitrary point by: translating to origin → rotating → translating back.</p>
+        </section>
+
+        <section>
             <h2>🚀 Project Motivation</h2>
             <p>This interactive simulator was created as an educational tool to help visualize and understand the concepts of epipolar geometry, which can be abstract and difficult to grasp from equations alone.</p>
             
